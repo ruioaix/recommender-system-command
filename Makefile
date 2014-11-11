@@ -1,9 +1,10 @@
 lib := lib
 tlkt := toolkit
+checkdir := test
 
-.PHONY : all clean $(tlkt) $(lib) 
+.PHONY : all clean check $(tlkt) $(lib) $(checkdir)
 
-all : $(lib) $(tlkt)
+all : $(lib) $(tlkt) $(checkdir)
 
 $(tlkt) : $(lib)
 	@$(MAKE) -C $@ all
@@ -11,8 +12,14 @@ $(tlkt) : $(lib)
 $(lib) :
 	@$(MAKE) -C $@ all
 
+$(checkdir) : $(lib) 
+	@$(MAKE) -C $@ all
+
 clean :
-	@for d in $(lib) $(tlkt); \
+	@for d in $(lib) $(tlkt) $(checkdir); \
 		do \
 		$(MAKE) -C $$d clean; \
 		done
+
+check : $(checkdir)
+	@./test/run_check
