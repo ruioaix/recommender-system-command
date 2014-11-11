@@ -2,6 +2,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <getopt.h>
+#include <string.h>
+
+#include "linefile.h"
+//#include "bip.h"
 
 struct OptionArgs {
 	int calculate_mass;
@@ -10,6 +14,7 @@ struct OptionArgs {
 	char *total_filename;
 	char *train_filename;
 	char *test_filename;
+	double dataset_divide_rate;
 
 	int random;
 };
@@ -22,9 +27,13 @@ static void display_usage(void) {
 	puts("-i: full dataset filename");
 	puts("-T: train dataset filename");
 	puts("-t: test dataset filename");
+	puts("-d: dataset divide rate(double)");
 	puts("-?: help information");
 	exit(EXIT_FAILURE);
 }
+
+static void verify_OptionArgs(struct OptionArgs *OptionArgs);
+static void do_work(struct OptionArgs *oa);
 
 int main(int argc, char **argv) {
 	struct OptionArgs OptionArgs;
@@ -34,6 +43,7 @@ int main(int argc, char **argv) {
 	OptionArgs.total_filename = NULL;
 	OptionArgs.train_filename = NULL;
 	OptionArgs.test_filename = NULL;
+	OptionArgs.dataset_divide_rate = 0.1;
 	static const char *optString = "mhHi:T:t:?";
 
 	struct option longOpts[] = {
@@ -72,7 +82,10 @@ int main(int argc, char **argv) {
 			case 't':
 				OptionArgs.test_filename = optarg;
 				printf("testset: %s\n", optarg);
-				printf("t\n");
+				break;
+			case 'd':
+				OptionArgs.dataset_divide_rate = 0.1;
+				printf("d\n");
 				break;
 			case '?':
 				display_usage();
@@ -87,6 +100,63 @@ int main(int argc, char **argv) {
 		}
 		opt = getopt_long(argc, argv, optString, longOpts, &longIndex);
 	}
+	printf("%d\n", OptionArgs.random);
 
+	verify_OptionArgs(&OptionArgs);
+	do_work(&OptionArgs);
 	return 0;
+}
+
+static void verify_OptionArgs(struct OptionArgs *OptionArgs) {
+	if (OptionArgs->total_filename == NULL && \
+			(OptionArgs->train_filename == NULL || OptionArgs->test_filename == NULL)) {
+		printf("dataset not enough.\n");
+	}
+	else if (OptionArgs->total_filename != NULL && \
+			(OptionArgs->train_filename != NULL || OptionArgs->test_filename != NULL)) {
+		printf("dataset too much.\n");
+	}
+}
+
+static void do_work(struct OptionArgs *oa) {
+	struct LineFile *lf = create_LineFile(oa->total_filename, 1, 1, -1);
+	free_LineFile(lf);
+	/*
+	struct Bip *ds1, *tr1, *te1;
+	struct Bip *ds2, *tr2, *te2;
+	if (oa->total_filename != NULL) {
+		struct LineFile *lf = create_LineFile(oa->total_filename, 1, 1, -1);
+		ds1 = create_Bip(lf, 1);
+		ds2 = create_Bip(lf, 2);
+		struct LineFile *smlp, *bigp;
+		divide_Bip(ds1, ds2, oa->dataset_divide_rate, &smlp, &bigp);
+		tr1 = create_Bip(smlp, 1);
+		tr2 = create_Bip(smlp, 2);
+		te1 = create_Bip(bigp, 1);
+		te2 = create_Bip(bigp, 2);
+		free_LineFile(lf);
+		free_LineFile(smlp);
+		free_LineFile(bigp);
+	}
+	else {
+		struct LineFile *trlf = create_LineFile(oa->train_filename, 1, 1, -1);
+		struct LineFile *telf = create_LineFile(oa->test_filename, 1, 1, -1);
+		struct LineFile *lf = add_LineFile(trlf, telf);
+		ds1 = create_Bip(lf, 1);
+		ds2 = create_Bip(lf, 2);
+		tr1 = create_Bip(trlf, 1);
+		tr2 = create_Bip(trlf, 2);
+		te1 = create_Bip(telf, 1);
+		te2 = create_Bip(telf, 2);
+		free_LineFile(trlf);
+		free_LineFile(telf);
+		free_LineFile(lf);
+	}
+	free_Bip(ds1);
+	free_Bip(ds2);
+	free_Bip(tr1);
+	free_Bip(tr2);
+	free_Bip(te1);
+	free_Bip(te2);
+	*/
 }
