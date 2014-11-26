@@ -583,11 +583,13 @@ struct Metrics_Bip *create_MetricsBip(void) {
 	struct Metrics_Bip *lp = malloc(sizeof(struct Metrics_Bip));
 	assert(lp != NULL);
 	lp->R = 0;
+	lp->RL = 0;
 	lp->PL = 0;
 	lp->HL = 0;
 	lp->IL = 0;
 	lp->NL = 0;
 	lp->L = 0;
+	lp->COV = 0;
 	lp->topL = NULL;
 	return lp;
 }
@@ -595,10 +597,12 @@ struct Metrics_Bip *create_MetricsBip(void) {
 //free(NULL) is ok.
 void clean_MetricsBip(struct Metrics_Bip *lp) {
 	lp->R = 0;
+	lp->RL = 0;
 	lp->PL = 0;
 	lp->HL = 0;
 	lp->IL = 0;
 	lp->NL = 0;
+	lp->COV = 0;
 	lp->L = 0;
 	free(lp->topL);
 	lp->topL = NULL;
@@ -646,7 +650,7 @@ struct Bip_recommend_param{
 //Warning: about unselected_list_length, I use bipii->idNum, not bipii->maxId. 
 //	but I believe in linyuan's paper, she use the bipii->maxId. 
 //	I think bipii->idNum make more sence.
-static void metrics_R_PL_Bip(int i1, long *i1count, int i2idNum, struct Bip *testi1, int L, int *rank, double *R, double *PL) {
+static void metrics_R_RL_PL_Bip(int i1, long *i1count, int i2idNum, struct Bip *testi1, int L, int *rank, double *R, double *RL, double *PL) {
 	if (i1<testi1->maxId + 1 &&  testi1->count[i1]) {
 		int unselected_list_length = i2idNum - i1count[i1];
 		int rank_i1_j = 0;
@@ -660,6 +664,7 @@ static void metrics_R_PL_Bip(int i1, long *i1count, int i2idNum, struct Bip *tes
 			}
 		}
 		*R += (double)rank_i1_j/(double)unselected_list_length;
+		*RL += (double)DiL/(double)(testi1->count[i1]);
 		*PL += (double)DiL/(double)L;
 	}
 }
@@ -692,19 +697,21 @@ static double metrics_IL_Bip(int i1maxId, long *i1count, int i1idNum, int i2maxI
 	return 2*IL;
 }
 //HL is hamming distance.
-static double metrics_HL_Bip(int i1maxId, long *i1count, int i2maxId, int L, int *Hij) {
+static void metrics_HL_COV_Bip(int i1maxId, long *i1count, int i2maxId, int L, int *Hij, double *HL, double *COV) {
 	int *sign = calloc((i2maxId + 1), sizeof(int));
+	int *sign2 = calloc((i2maxId + 1), sizeof(int));
 	assert(sign != NULL);
 	int i, j;
 	long k;
 	int cou = 0;
 	int Cij = 0;
-	double HL = 0;
+	*HL = 0;
 	for (i=0; i<i1maxId + 1; ++i) {
 		if (i1count[i]) {
 			memset(sign, 0, (i2maxId + 1)*sizeof(int));
 			for (k=i*L; k<i*L+L; ++k) {
 				sign[Hij[k]] = 1;
+				sign2[Hij[k]] = 1;
 			}
 			for (j=i+1; j<i1maxId + 1; ++j) {
 				if (i1count[j]) {
@@ -714,15 +721,23 @@ static double metrics_HL_Bip(int i1maxId, long *i1count, int i2maxId, int L, int
 							++Cij;
 						}
 					}
-					HL += 1 - ((double)Cij)/(double)L;
+					*HL += 1 - ((double)Cij)/(double)L;
 					//printf("%d %d %d\n", i, j, Cij);
 					++cou;
 				}
 			}
 		}
 	}
+	int cov = 0;
+	for (i = 0; i < i2maxId + 1; ++i) {
+		if (sign2[i]) {
+			++cov;
+		}	
+	}
+	*COV = (double)cov/i2maxId;
 	free(sign);
-	return HL/cou;
+	free(sign2);
+	*HL /= cou;
 }
 
 //NL is popularity.
@@ -1392,7 +1407,7 @@ static struct Metrics_Bip *recommend_Bip(void (*recommend_core)(struct Bip_recom
 	int i1maxId      = args->traini1->maxId;
 	int i2maxId      = args->traini2->maxId;
 	int i1idNum      = args->traini1->idNum;
-	int i2idNum      = args->traini2->idNum;
+	//int i2idNum      = args->traini2->idNum;
 	long *i1count    = args->traini1->count;
 	long *i2count    = args->traini2->count;
 
@@ -1401,8 +1416,8 @@ static struct Metrics_Bip *recommend_Bip(void (*recommend_core)(struct Bip_recom
  	// all L is from this function. if you want to change, change the L below.
 	int L = 50;
 
-	double R, PL, HL, IL, NL;
-	R=PL=HL=IL=NL=0;
+	double R, RL, PL, HL, IL, NL, COV;
+	R=RL=PL=HL=IL=NL=COV=0;
 
 	double *i1source = malloc((i1maxId + 1)*sizeof(double));
 	assert(i1source != NULL);
@@ -1439,23 +1454,26 @@ static struct Metrics_Bip *recommend_Bip(void (*recommend_core)(struct Bip_recom
 			args->i1 = i;
 			recommend_core(args);
 			Bip_core_common_part(args, i2id, rank, topL + i*L, L);
-			metrics_R_PL_Bip(i, i1count, /*i2maxId*/i2idNum, args->testi1, L, rank, &R, &PL);
+			metrics_R_RL_PL_Bip(i, i1count, i2maxId/*i2idNum*/, args->testi1, L, rank, &R, &RL, &PL);
 		}
 		//printf("%d\t", i);fflush(stdout);
 	}
 
 	R /= args->testi1->edgesNum;
+	RL /= args->testi1->idNum;
 	PL /= args->testi1->idNum;
-	HL = metrics_HL_Bip(i1maxId, i1count, i2maxId, L, topL);
+	metrics_HL_COV_Bip(i1maxId, i1count, i2maxId, L, topL, &HL, &COV);
 	IL = metrics_IL_Bip(i1maxId, i1count, i1idNum, i2maxId, L, topL, itemSim);
 	NL = metrics_NL_Bip(i1maxId, i1count, i1idNum, i2count, L, topL);
 	
 	struct Metrics_Bip *retn = create_MetricsBip();
 	retn->R = R;
+	retn->RL = RL;
 	retn->PL = PL;
 	retn->HL = HL;
 	retn->IL = IL;
 	retn->NL = NL;
+	retn->COV = COV;
 	retn->topL = topL;
 	retn->L = L;
 
@@ -1577,7 +1595,8 @@ int *mass_getBK_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1
 				Bip_core_common_part(&args, i2id, rank, topL + i*L, L);
 
 				R=PL=0;
-				metrics_R_PL_Bip(i, traini1->count, traini2->idNum, testi1, L, rank, &R, &PL);
+				double RL = 0;
+				metrics_R_RL_PL_Bip(i, traini1->count, traini2->idNum, testi1, L, rank, &R, &RL, &PL);
 				//R will never be 0, because i is in testi1.
 				if (bR > R) {
 					bR = R;

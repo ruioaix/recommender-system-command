@@ -64,10 +64,12 @@ struct LineFile *mass_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2);
 
 struct Metrics_Bip {
 	double R;
+	double RL;
 	double PL;
 	double HL;
     double IL;
     double NL;
+	double COV;
 	int *topL;
 	int L;
 };
