@@ -15,6 +15,7 @@ struct OptionArgs {
 	int calculate_HNBI;
 	int calculate_RENBI;
 	int loopNum;
+	int calculate_user_gender;
 	char *total_filename;
 	char *train_filename;
 	char *test_filename;
