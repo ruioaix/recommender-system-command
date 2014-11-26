@@ -43,7 +43,7 @@ static void set_list_LineFile(struct LineFile *lf) {
 	printsf("fill ilist&dlist&slist with the address of ix&dx&sx.");
 }
 
-static void set_filename_LineFile(struct LineFile *lf, char *filename) {
+void set_filename_LineFile(struct LineFile *lf, char *filename) {
 	int len = strlen(filename)+1;
 	char *fn = smalloc(len);
 	memcpy(fn, filename, len);

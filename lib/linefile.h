@@ -19,7 +19,7 @@
  *  Author: RuiXiao <xrfind@gmail.com>
  */
 
-#ifndef CN_LINEFILE_H
+#ifndef CN_LINEFILE_H 
 #define CN_LINEFILE_H
 
 struct LineFile {
@@ -67,6 +67,7 @@ struct LineFile {
  * non-int type arguments are ignored.
  *
  */
+void set_filename_LineFile(struct LineFile *lf, char *filename);
 struct LineFile *create_LineFile(char * filename, ...);
 /// free;
 void free_LineFile(struct LineFile *lf);

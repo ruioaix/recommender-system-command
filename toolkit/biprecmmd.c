@@ -5,7 +5,7 @@
 #include <string.h>
 
 #include "linefile.h"
-//#include "bip.h"
+#include "bip.h"
 
 struct OptionArgs {
 	int calculate_mass;
@@ -118,45 +118,39 @@ static void verify_OptionArgs(struct OptionArgs *OptionArgs) {
 	}
 }
 
+static void do_work_divide(struct OptionArgs *oa);
+static void do_work_merge(void);
+
 static void do_work(struct OptionArgs *oa) {
-	struct LineFile *lf = create_LineFile(oa->total_filename, 1, 1, -1);
-	free_LineFile(lf);
-	/*
-	struct Bip *ds1, *tr1, *te1;
-	struct Bip *ds2, *tr2, *te2;
 	if (oa->total_filename != NULL) {
-		struct LineFile *lf = create_LineFile(oa->total_filename, 1, 1, -1);
-		ds1 = create_Bip(lf, 1);
-		ds2 = create_Bip(lf, 2);
-		struct LineFile *smlp, *bigp;
-		divide_Bip(ds1, ds2, oa->dataset_divide_rate, &smlp, &bigp);
-		tr1 = create_Bip(smlp, 1);
-		tr2 = create_Bip(smlp, 2);
-		te1 = create_Bip(bigp, 1);
-		te2 = create_Bip(bigp, 2);
-		free_LineFile(lf);
-		free_LineFile(smlp);
-		free_LineFile(bigp);
+		do_work_divide(oa);
 	}
 	else {
-		struct LineFile *trlf = create_LineFile(oa->train_filename, 1, 1, -1);
-		struct LineFile *telf = create_LineFile(oa->test_filename, 1, 1, -1);
-		struct LineFile *lf = add_LineFile(trlf, telf);
-		ds1 = create_Bip(lf, 1);
-		ds2 = create_Bip(lf, 2);
-		tr1 = create_Bip(trlf, 1);
-		tr2 = create_Bip(trlf, 2);
-		te1 = create_Bip(telf, 1);
-		te2 = create_Bip(telf, 2);
-		free_LineFile(trlf);
-		free_LineFile(telf);
-		free_LineFile(lf);
+		do_work_merge();
 	}
-	free_Bip(ds1);
-	free_Bip(ds2);
-	free_Bip(tr1);
-	free_Bip(tr2);
-	free_Bip(te1);
-	free_Bip(te2);
-	*/
+}
+
+static void do_work_divide(struct OptionArgs *oa) {
+	struct Bip *ds1, *ds2, *tr1, *tr2, *te1, *te2;
+	struct LineFile *smlp, *bigp;
+	struct LineFile *lf = create_LineFile(oa->total_filename, 1, 1, -1);
+	ds1 = create_Bip(lf, 1);
+	ds2 = create_Bip(lf, 2);
+	divide_Bip(ds1, ds2, oa->dataset_divide_rate, &smlp, &bigp);
+	tr1 = create_Bip(smlp, 1);
+	tr2 = create_Bip(smlp, 2);
+	te1 = create_Bip(bigp, 1);
+	te2 = create_Bip(bigp, 2);
+
+	free_LineFile(lf); 
+	printf("xx\n");fflush(stdout);
+	free_LineFile(smlp); 
+	printf("xx\n");fflush(stdout);
+	free_LineFile(bigp);
+	free_Bip(ds1); free_Bip(ds2);
+	free_Bip(tr1); free_Bip(tr2);
+	free_Bip(te1); free_Bip(te2);
+}
+
+static void do_work_merge(void) {
 }
