@@ -499,7 +499,8 @@ struct LineFile *similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, int target
 	simfile->i1 = i1;
 	simfile->i2 = i2;
 	simfile->d1 = d1;
-	simfile->filename = simfilename[target];	
+	set_filename_LineFile(simfile, simfilename[target]);
+	//simfile->filename = simfilename[target];	
 
 	printf("calculate %s done =>> linesNum: %ld.\n", simfile->filename, linesNum);
 	return simfile;

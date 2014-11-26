@@ -6,6 +6,7 @@
 
 #include "linefile.h"
 #include "bip.h"
+#include "base.h"
 
 struct OptionArgs {
 	int calculate_mass;
@@ -44,6 +45,7 @@ int main(int argc, char **argv) {
 	OptionArgs.train_filename = NULL;
 	OptionArgs.test_filename = NULL;
 	OptionArgs.dataset_divide_rate = 0.1;
+	OptionArgs.random = 0;
 	static const char *optString = "mhHi:T:t:?";
 
 	struct option longOpts[] = {
@@ -61,31 +63,31 @@ int main(int argc, char **argv) {
 		switch (opt) {
 			case 'm':
 				OptionArgs.calculate_mass = 1;
-				printf("m\n");
+				//printf("m\n");
 				break;
 			case 'h':
 				OptionArgs.calculate_heat = 1;
-				printf("h\n");
+				//printf("h\n");
 				break;
 			case 'H':
 				OptionArgs.calculate_hybrid = 1;
-				printf("H\n");
+				//printf("H\n");
 				break;
 			case 'i':
 				OptionArgs.total_filename = optarg;
-				printf("dataset: %s\n", optarg);
+				//printf("dataset: %s\n", optarg);
 				break;
 			case 'T':
 				OptionArgs.train_filename = optarg;
-				printf("trainset: %s\n", optarg);
+				//printf("trainset: %s\n", optarg);
 				break;
 			case 't':
 				OptionArgs.test_filename = optarg;
-				printf("testset: %s\n", optarg);
+				//printf("testset: %s\n", optarg);
 				break;
 			case 'd':
 				OptionArgs.dataset_divide_rate = 0.1;
-				printf("d\n");
+				//printf("d\n");
 				break;
 			case '?':
 				display_usage();
@@ -100,7 +102,7 @@ int main(int argc, char **argv) {
 		}
 		opt = getopt_long(argc, argv, optString, longOpts, &longIndex);
 	}
-	printf("%d\n", OptionArgs.random);
+	//printf("%d\n", OptionArgs.random);
 
 	verify_OptionArgs(&OptionArgs);
 	do_work(&OptionArgs);
@@ -130,6 +132,10 @@ static void do_work(struct OptionArgs *oa) {
 	}
 }
 
+static void do_work_divide_mass(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim);
+static void do_work_divide_heat(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim);
+static void do_work_divide_hybrid(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, double hybrid_param);
+
 static void do_work_divide(struct OptionArgs *oa) {
 	struct Bip *ds1, *ds2, *tr1, *tr2, *te1, *te2;
 	struct LineFile *smlp, *bigp;
@@ -137,20 +143,58 @@ static void do_work_divide(struct OptionArgs *oa) {
 	ds1 = create_Bip(lf, 1);
 	ds2 = create_Bip(lf, 2);
 	divide_Bip(ds1, ds2, oa->dataset_divide_rate, &smlp, &bigp);
-	tr1 = create_Bip(smlp, 1);
-	tr2 = create_Bip(smlp, 2);
-	te1 = create_Bip(bigp, 1);
-	te2 = create_Bip(bigp, 2);
+	te1 = create_Bip(smlp, 1);
+	te2 = create_Bip(smlp, 2);
+	tr1 = create_Bip(bigp, 1);
+	tr2 = create_Bip(bigp, 2);
+
+	struct LineFile *simf = similarity_Bip(tr1, tr2, 2);
+	struct iidNet *trsim = create_iidNet(simf);
+	printer("10");
+	free_LineFile(simf);
+
+	printer("10");
+	if (oa->calculate_mass == 1) {
+		do_work_divide_mass(tr1, tr2, te1, te2, trsim);
+	}
+	printer("11");
+	if (oa->calculate_heat == 1) {
+		do_work_divide_heat(tr1, tr2, te1, te2, trsim);
+	}
+	printer("12");
+	if (oa->calculate_hybrid == 1) {
+		do_work_divide_hybrid(tr1, tr2, te1, te2, trsim, 0.2);
+	}
 
 	free_LineFile(lf); 
-	printf("xx\n");fflush(stdout);
 	free_LineFile(smlp); 
-	printf("xx\n");fflush(stdout);
 	free_LineFile(bigp);
 	free_Bip(ds1); free_Bip(ds2);
 	free_Bip(tr1); free_Bip(tr2);
 	free_Bip(te1); free_Bip(te2);
+	free_iidNet(trsim);
 }
 
 static void do_work_merge(void) {
+}
+
+static void do_work_divide_mass(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim) {
+	struct Metrics_Bip *mass_result = mass_Bip(tr1, tr2, te1, te2, trsim);
+	int loopNum = 1;
+	printf("\tmass\tloopNum: %d, R: %f, PL: %f, IL: %f, HL: %f, NL: %f\n", loopNum, mass_result->R/loopNum, mass_result->PL/loopNum, mass_result->IL/loopNum, mass_result->HL/loopNum, mass_result->NL/loopNum);
+	free_MetricsBip(mass_result);
+}
+
+static void do_work_divide_heat(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim) {
+	struct Metrics_Bip *heats_result = heats_Bip(tr1, tr2, te1, te2, trsim);
+	int loopNum = 1;
+	printf("\theats\tloopNum: %d, R: %f, PL: %f, IL: %f, HL: %f, NL: %f\n", loopNum, heats_result->R/loopNum, heats_result->PL/loopNum, heats_result->IL/loopNum, heats_result->HL/loopNum, heats_result->NL/loopNum);
+	free_MetricsBip(heats_result);
+}
+
+static void do_work_divide_hybrid(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, double hybrid_param) {
+	struct Metrics_Bip *hybrid_result = hybrid_Bip(tr1, tr2, te1, te2, trsim, hybrid_param);
+	int loopNum = 1;
+	printf("\thybrid\tloopNum: %d, R: %f, PL: %f, IL: %f, HL: %f, NL: %f\n", loopNum, hybrid_result->R/loopNum, hybrid_result->PL/loopNum, hybrid_result->IL/loopNum, hybrid_result->HL/loopNum, hybrid_result->NL/loopNum);
+	free_MetricsBip(hybrid_result);
 }
