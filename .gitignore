@@ -1,6 +1,7 @@
 tags
 script
 result
+result-*
 run
 cluster_output
 *.swp
