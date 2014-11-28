@@ -662,6 +662,8 @@ struct Bip_recommend_param{
 	int *user_gender;
 	int *user_age;
 
+	int L;
+
 };
 
 //following is for recommendation.
@@ -1525,7 +1527,7 @@ static struct Metrics_Bip *recommend_Bip(void (*recommend_core)(struct Bip_recom
 	struct iidNet *itemSim = args->itemSim;
 
  	// all L is from this function. if you want to change, change the L below.
-	int L = 50;
+	int L = args->L;;
 
 	double R, RL, PL, HL, IL, NL, COV;
 	R=RL=PL=HL=IL=NL=COV=0;
@@ -1623,7 +1625,7 @@ static struct Metrics_Bip *recommend_Bip(void (*recommend_core)(struct Bip_recom
 }
 
 
-struct Metrics_Bip *mass_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, int *user_gender, int *user_age) {
+struct Metrics_Bip *mass_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, int *user_gender, int *user_age, int L) {
 	struct Bip_recommend_param param;
 	param.itemSim = itemSim;
 
@@ -1633,11 +1635,13 @@ struct Metrics_Bip *mass_Bip(struct Bip *traini1, struct Bip *traini2, struct Bi
 
 	param.user_gender = user_gender;
 	param.user_age = user_age;
+
+	param.L = L;
 
 	return recommend_Bip(mass_recommend_Bip, &param);
 }
 
-struct Metrics_Bip *heats_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, int *user_gender, int *user_age) {
+struct Metrics_Bip *heats_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, int *user_gender, int *user_age, int L) {
 	struct Bip_recommend_param param;
 	param.itemSim = itemSim;
 
@@ -1647,11 +1651,12 @@ struct Metrics_Bip *heats_Bip(struct Bip *traini1, struct Bip *traini2, struct B
 
 	param.user_gender = user_gender;
 	param.user_age = user_age;
+	param.L = L;
 
 	return recommend_Bip(heats_recommend_Bip, &param);
 }
 
-struct Metrics_Bip *HNBI_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, double HNBI_param, int *user_gender, int *user_age) {
+struct Metrics_Bip *HNBI_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, double HNBI_param, int *user_gender, int *user_age, int L) {
 	struct Bip_recommend_param param;
 	param.itemSim = itemSim;
 	param.HNBI_param = HNBI_param;
@@ -1662,10 +1667,11 @@ struct Metrics_Bip *HNBI_Bip(struct Bip *traini1, struct Bip *traini2, struct Bi
 
 	param.user_gender = user_gender;
 	param.user_age = user_age;
+	param.L = L;
 	return recommend_Bip(HNBI_recommend_Bip, &param);
 }
 
-struct Metrics_Bip *RENBI_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, double RENBI_param, int *user_gender, int *user_age) {
+struct Metrics_Bip *RENBI_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, double RENBI_param, int *user_gender, int *user_age, int L) {
 	struct Bip_recommend_param param;
 	param.itemSim = itemSim;
 	param.RENBI_param = RENBI_param;
@@ -1676,10 +1682,11 @@ struct Metrics_Bip *RENBI_Bip(struct Bip *traini1, struct Bip *traini2, struct B
 
 	param.user_gender = user_gender;
 	param.user_age = user_age;
+	param.L = L;
 	return recommend_Bip(RENBI_recommend_Bip, &param);
 }
 
-struct Metrics_Bip *hybrid_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, double hybrid_param, int *user_gender, int *user_age) {
+struct Metrics_Bip *hybrid_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, double hybrid_param, int *user_gender, int *user_age, int L) {
 	struct Bip_recommend_param param;
 	param.itemSim = itemSim;
 	param.hybrid_param = hybrid_param;
@@ -1690,6 +1697,7 @@ struct Metrics_Bip *hybrid_Bip(struct Bip *traini1, struct Bip *traini2, struct 
 
 	param.user_gender = user_gender;
 	param.user_age = user_age;
+	param.L = L;
 	return recommend_Bip(hybrid_recommend_Bip, &param);
 }
 
