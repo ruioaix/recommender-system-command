@@ -4,6 +4,8 @@ checkdir := test
 
 .PHONY : all clean check $(tlkt) $(lib) $(checkdir)
 
+$(tlkt) :
+
 all : $(lib) $(tlkt) $(checkdir)
 
 $(tlkt) : $(lib)

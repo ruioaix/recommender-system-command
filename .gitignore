@@ -1,4 +1,7 @@
 tags
+script
+result
+run
 *.swp
 a.out
 *.o

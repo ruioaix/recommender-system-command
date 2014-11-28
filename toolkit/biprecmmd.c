@@ -70,7 +70,7 @@ int main(int argc, char **argv) {
 
 	OptionArgs.random = 0;
 
-	static const char *optString = "mhHNEi:T:t:l:u:d:?";
+	static const char *optString = "mhHNEi:T:t:l:u:d:s:?";
 
 	struct option longOpts[] = {
 		{"mass", no_argument, NULL, 'm'},
