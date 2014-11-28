@@ -4,6 +4,7 @@
 #include <getopt.h>
 #include <string.h>
 
+#include "mtprand.h"
 #include "linefile.h"
 #include "bip.h"
 #include "base.h"
@@ -21,6 +22,7 @@ struct OptionArgs {
 
 	int loopNum;
 	double dataset_divide_rate;
+	int random_seed;
 
 	int random;
 };
@@ -39,6 +41,7 @@ static void display_usage(void) {
 
 	puts("-l: loop Number");
 	puts("-d: dataset divide rate(double)");
+	puts("-s: random seed");
 
 	puts("-?: help information");
 	exit(EXIT_FAILURE);
@@ -63,6 +66,7 @@ int main(int argc, char **argv) {
 
 	OptionArgs.loopNum = 1;
 	OptionArgs.dataset_divide_rate = 0.1;
+	OptionArgs.random_seed = 1;
 
 	OptionArgs.random = 0;
 
@@ -82,6 +86,8 @@ int main(int argc, char **argv) {
 
 		{"loopNum", required_argument, NULL, 'l'},
 		{"dividerate", required_argument, NULL, 'd'},
+		{"random-seed", required_argument, NULL, 's'},
+		
 
 		{"help", no_argument, NULL, '?'}
 	};
@@ -135,6 +141,9 @@ int main(int argc, char **argv) {
 			case 'l':
 				OptionArgs.loopNum = strtol(optarg, NULL, 10);
 				break;
+			case 's':
+				OptionArgs.random_seed = strtol(optarg, NULL, 10);
+				break;
 
 			//help
 			case '?':
@@ -152,6 +161,7 @@ int main(int argc, char **argv) {
 	}
 	//printf("%d\n", OptionArgs.random);
 
+	set_seed_MTPR(OptionArgs.random_seed);
 	verify_OptionArgs(&OptionArgs);
 	do_work(&OptionArgs);
 	return 0;
