@@ -266,24 +266,24 @@ static void do_work_divide(struct OptionArgs *oa) {
 
 	int loopNum = oa->loopNum;
 	if (oa->calculate_mass == 1) {
-		printf("\tmass\tloopNum: %d, R: %f, RL: %f, PL: %f, IL: %f, HL: %f, NL: %f, COV: %f\n", loopNum, mass_result->R/loopNum, mass_result->RL/loopNum, mass_result->PL/loopNum, mass_result->IL/loopNum, mass_result->HL/loopNum, mass_result->NL/loopNum, mass_result->COV/loopNum);
-		printf("\tmass\tloopNum: %d, R: %f, RL: %f, PL: %f, IL: %f, HL: %f, NL: %f, COV: %f\n", loopNum, mass_result->R_1/loopNum, mass_result->RL_1/loopNum, mass_result->PL_1/loopNum, mass_result->IL_1/loopNum, mass_result->HL_1/loopNum, mass_result->NL_1/loopNum, mass_result->COV_1/loopNum);
+		printf("\tmass_female\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", loopNum, mass_result->R/loopNum, mass_result->RL/loopNum, mass_result->PL/loopNum, mass_result->IL/loopNum, mass_result->HL/loopNum, mass_result->NL/loopNum, mass_result->COV/loopNum);
+		printf("\tmass_male\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", loopNum, mass_result->R_1/loopNum, mass_result->RL_1/loopNum, mass_result->PL_1/loopNum, mass_result->IL_1/loopNum, mass_result->HL_1/loopNum, mass_result->NL_1/loopNum, mass_result->COV_1/loopNum);
 	}
 	if (oa->calculate_heat == 1) {
-		printf("\theats\tloopNum: %d, R: %f, RL: %f, PL: %f, IL: %f, HL: %f, NL: %f, COV: %f\n", loopNum, heats_result->R/loopNum, heats_result->RL/loopNum, heats_result->PL/loopNum, heats_result->IL/loopNum, heats_result->HL/loopNum, heats_result->NL/loopNum, heats_result->COV/loopNum);
-		printf("\theats\tloopNum: %d, R: %f, RL: %f, PL: %f, IL: %f, HL: %f, NL: %f, COV: %f\n", loopNum, heats_result->R_1/loopNum, heats_result->RL_1/loopNum, heats_result->PL_1/loopNum, heats_result->IL_1/loopNum, heats_result->HL_1/loopNum, heats_result->NL_1/loopNum, heats_result->COV_1/loopNum);
+		printf("\theats_female\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", loopNum, heats_result->R/loopNum, heats_result->RL/loopNum, heats_result->PL/loopNum, heats_result->IL/loopNum, heats_result->HL/loopNum, heats_result->NL/loopNum, heats_result->COV/loopNum);
+		printf("\theats_male\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", loopNum, heats_result->R_1/loopNum, heats_result->RL_1/loopNum, heats_result->PL_1/loopNum, heats_result->IL_1/loopNum, heats_result->HL_1/loopNum, heats_result->NL_1/loopNum, heats_result->COV_1/loopNum);
 	}
 	if (oa->calculate_hybrid == 1) {
-		printf("\thybrid\tloopNum: %d, R: %f, RL: %f, PL: %f, IL: %f, HL: %f, NL: %f, COV: %f\n", loopNum, hybrid_result->R/loopNum, hybrid_result->RL/loopNum, hybrid_result->PL/loopNum, hybrid_result->IL/loopNum, hybrid_result->HL/loopNum, hybrid_result->NL/loopNum, hybrid_result->COV/loopNum);
-		printf("\thybrid\tloopNum: %d, R: %f, RL: %f, PL: %f, IL: %f, HL: %f, NL: %f, COV: %f\n", loopNum, hybrid_result->R_1/loopNum, hybrid_result->RL_1/loopNum, hybrid_result->PL_1/loopNum, hybrid_result->IL_1/loopNum, hybrid_result->HL_1/loopNum, hybrid_result->NL_1/loopNum, hybrid_result->COV_1/loopNum);
+		printf("\thybrid_female\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", loopNum, hybrid_result->R/loopNum, hybrid_result->RL/loopNum, hybrid_result->PL/loopNum, hybrid_result->IL/loopNum, hybrid_result->HL/loopNum, hybrid_result->NL/loopNum, hybrid_result->COV/loopNum);
+		printf("\thybrid_male\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", loopNum, hybrid_result->R_1/loopNum, hybrid_result->RL_1/loopNum, hybrid_result->PL_1/loopNum, hybrid_result->IL_1/loopNum, hybrid_result->HL_1/loopNum, hybrid_result->NL_1/loopNum, hybrid_result->COV_1/loopNum);
 	}
 	if (oa->calculate_HNBI == 1) {
-		printf("\tHNBI\tloopNum: %d, R: %f, RL: %f, PL: %f, IL: %f, HL: %f, NL: %f, COV: %f\n", loopNum, HNBI_result->R/loopNum, HNBI_result->RL/loopNum, HNBI_result->PL/loopNum, HNBI_result->IL/loopNum, HNBI_result->HL/loopNum, HNBI_result->NL/loopNum, HNBI_result->COV/loopNum);
-		printf("\tHNBI\tloopNum: %d, R: %f, RL: %f, PL: %f, IL: %f, HL: %f, NL: %f, COV: %f\n", loopNum, HNBI_result->R_1/loopNum, HNBI_result->RL_1/loopNum, HNBI_result->PL_1/loopNum, HNBI_result->IL_1/loopNum, HNBI_result->HL_1/loopNum, HNBI_result->NL_1/loopNum, HNBI_result->COV_1/loopNum);
+		printf("\tHNBI_female\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", loopNum, HNBI_result->R/loopNum, HNBI_result->RL/loopNum, HNBI_result->PL/loopNum, HNBI_result->IL/loopNum, HNBI_result->HL/loopNum, HNBI_result->NL/loopNum, HNBI_result->COV/loopNum);
+		printf("\tHNBI_male\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", loopNum, HNBI_result->R_1/loopNum, HNBI_result->RL_1/loopNum, HNBI_result->PL_1/loopNum, HNBI_result->IL_1/loopNum, HNBI_result->HL_1/loopNum, HNBI_result->NL_1/loopNum, HNBI_result->COV_1/loopNum);
 	}
 	if (oa->calculate_RENBI == 1) {
-		printf("\tRENBI\tloopNum: %d, R: %f, RL: %f, PL: %f, IL: %f, HL: %f, NL: %f, COV: %f\n", loopNum, RENBI_result->R/loopNum, RENBI_result->RL/loopNum, RENBI_result->PL/loopNum, RENBI_result->IL/loopNum, RENBI_result->HL/loopNum, RENBI_result->NL/loopNum, RENBI_result->COV/loopNum);
-		printf("\tRENBI\tloopNum: %d, R: %f, RL: %f, PL: %f, IL: %f, HL: %f, NL: %f, COV: %f\n", loopNum, RENBI_result->R_1/loopNum, RENBI_result->RL_1/loopNum, RENBI_result->PL_1/loopNum, RENBI_result->IL_1/loopNum, RENBI_result->HL_1/loopNum, RENBI_result->NL_1/loopNum, RENBI_result->COV_1/loopNum);
+		printf("\tRENBI_female\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", loopNum, RENBI_result->R/loopNum, RENBI_result->RL/loopNum, RENBI_result->PL/loopNum, RENBI_result->IL/loopNum, RENBI_result->HL/loopNum, RENBI_result->NL/loopNum, RENBI_result->COV/loopNum);
+		printf("\tRENBI_male\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", loopNum, RENBI_result->R_1/loopNum, RENBI_result->RL_1/loopNum, RENBI_result->PL_1/loopNum, RENBI_result->IL_1/loopNum, RENBI_result->HL_1/loopNum, RENBI_result->NL_1/loopNum, RENBI_result->COV_1/loopNum);
 	}
 
 	free(user_gender); free(user_age);
