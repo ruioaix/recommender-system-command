@@ -2,6 +2,7 @@ tags
 script
 result
 run
+process
 cluster_output
 *.swp
 a.out
