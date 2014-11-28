@@ -203,11 +203,11 @@ static void do_work(struct OptionArgs *oa) {
 	}
 }
 
-static void do_work_divide_mass(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct Metrics_Bip *result, int *user_gender, int *user_age, int L);
-static void do_work_divide_heat(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct Metrics_Bip *result, int *user_gender, int *user_age, int L);
-static void do_work_divide_hybrid(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, double hybrid_param, struct Metrics_Bip *result, int *user_gender, int *user_age, int L);
-static void do_work_divide_HNBI(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, double HNBI_param, struct Metrics_Bip *result, int *user_gender, int *user_age, int L);
-static void do_work_divide_RENBI(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, double RENBI_param, struct Metrics_Bip *result, int *user_gender, int *user_age, int L);
+static void do_work_divide_mass(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct Metrics_Bip *result, struct User_ATT *ua, int L);
+static void do_work_divide_heat(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct Metrics_Bip *result, struct User_ATT *ua, int L);
+static void do_work_divide_hybrid(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, double hybrid_param, struct Metrics_Bip *result, struct User_ATT *ua, int L);
+static void do_work_divide_HNBI(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, double HNBI_param, struct Metrics_Bip *result, struct User_ATT *ua, int L);
+static void do_work_divide_RENBI(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, double RENBI_param, struct Metrics_Bip *result, struct User_ATT *ua, int L);
 
 static void do_work_divide(struct OptionArgs *oa) {
 	struct Bip *ds1, *ds2, *tr1, *tr2, *te1, *te2;
@@ -231,6 +231,10 @@ static void do_work_divide(struct OptionArgs *oa) {
 	}
 	free_LineFile(ulf);
 
+	struct User_ATT ua;
+	ua.gender = user_gender;
+	ua.age = user_age;
+
 	struct Metrics_Bip *mass_result = create_MetricsBip();
 	struct Metrics_Bip *heats_result = create_MetricsBip();
 	struct Metrics_Bip *hybrid_result = create_MetricsBip();
@@ -244,24 +248,41 @@ static void do_work_divide(struct OptionArgs *oa) {
 		tr1 = create_Bip(bigp, 1);
 		tr2 = create_Bip(bigp, 2);
 
+		ua.testset_female_node_num = 0;
+		ua.testset_female_edge_num = 0;
+		ua.testset_male_node_num = 0;
+		ua.testset_male_edge_num = 0;
+		for (i = 0; i < te1->maxId + 1; ++i) {
+			if (te1->count[i]) {
+				if (user_gender[i] == 0) {
+					(ua.testset_female_node_num)++;
+					ua.testset_female_edge_num += te1->count[i];
+				}	
+				if (user_gender[i] == 1) {
+					(ua.testset_male_node_num)++;
+					ua.testset_male_edge_num += te1->count[i];
+				}
+			}
+		}
+
 		struct LineFile *simf = similarity_Bip(tr1, tr2, 2);
 		struct iidNet *trsim = create_iidNet(simf);
 		free_LineFile(simf);
 
 		if (oa->calculate_mass == 1) {
-			do_work_divide_mass(tr1, tr2, te1, te2, trsim, mass_result, user_gender, user_age, oa->L);
+			do_work_divide_mass(tr1, tr2, te1, te2, trsim, mass_result, &ua, oa->L);
 		}
 		if (oa->calculate_heat == 1) {
-			do_work_divide_heat(tr1, tr2, te1, te2, trsim, heats_result, user_gender, user_age, oa->L);
+			do_work_divide_heat(tr1, tr2, te1, te2, trsim, heats_result, &ua, oa->L);
 		}
 		if (oa->calculate_hybrid == 1) {
-			do_work_divide_hybrid(tr1, tr2, te1, te2, trsim, 0.2, hybrid_result, user_gender, user_age, oa->L);
+			do_work_divide_hybrid(tr1, tr2, te1, te2, trsim, 0.2, hybrid_result, &ua, oa->L);
 		}
 		if (oa->calculate_HNBI == 1) {
-			do_work_divide_HNBI(tr1, tr2, te1, te2, trsim, -0.8, HNBI_result, user_gender, user_age, oa->L);
+			do_work_divide_HNBI(tr1, tr2, te1, te2, trsim, -0.8, HNBI_result, &ua, oa->L);
 		}
 		if (oa->calculate_RENBI == 1) {
-			do_work_divide_RENBI(tr1, tr2, te1, te2, trsim, -0.75, RENBI_result, user_gender, user_age, oa->L);
+			do_work_divide_RENBI(tr1, tr2, te1, te2, trsim, -0.75, RENBI_result, &ua, oa->L);
 		}
 
 		free_LineFile(smlp); 
@@ -273,24 +294,29 @@ static void do_work_divide(struct OptionArgs *oa) {
 
 	int loopNum = oa->loopNum;
 	if (oa->calculate_mass == 1) {
-		printf("\tmass_female\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", loopNum, mass_result->R/loopNum, mass_result->RL/loopNum, mass_result->PL/loopNum, mass_result->IL/loopNum, mass_result->HL/loopNum, mass_result->NL/loopNum, mass_result->COV/loopNum);
-		printf("\tmass_male\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", loopNum, mass_result->R_1/loopNum, mass_result->RL_1/loopNum, mass_result->PL_1/loopNum, mass_result->IL_1/loopNum, mass_result->HL_1/loopNum, mass_result->NL_1/loopNum, mass_result->COV_1/loopNum);
+		for (i = 0; i < 2; ++i) {
+			printf("\tmass_%d\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", i, loopNum, mass_result->R[i]/loopNum, mass_result->RL[i]/loopNum, mass_result->PL[i]/loopNum, mass_result->IL[i]/loopNum, mass_result->HL[i]/loopNum, mass_result->NL[i]/loopNum, mass_result->COV[i]/loopNum);
+		}
 	}
 	if (oa->calculate_heat == 1) {
-		printf("\theats_female\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", loopNum, heats_result->R/loopNum, heats_result->RL/loopNum, heats_result->PL/loopNum, heats_result->IL/loopNum, heats_result->HL/loopNum, heats_result->NL/loopNum, heats_result->COV/loopNum);
-		printf("\theats_male\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", loopNum, heats_result->R_1/loopNum, heats_result->RL_1/loopNum, heats_result->PL_1/loopNum, heats_result->IL_1/loopNum, heats_result->HL_1/loopNum, heats_result->NL_1/loopNum, heats_result->COV_1/loopNum);
+		for (i = 0; i < 2; ++i) {
+			printf("\theats_%d\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", i, loopNum, heats_result->R[i]/loopNum, heats_result->RL[i]/loopNum, heats_result->PL[i]/loopNum, heats_result->IL[i]/loopNum, heats_result->HL[i]/loopNum, heats_result->NL[i]/loopNum, heats_result->COV[i]/loopNum);
+		}
 	}
 	if (oa->calculate_hybrid == 1) {
-		printf("\thybrid_female\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", loopNum, hybrid_result->R/loopNum, hybrid_result->RL/loopNum, hybrid_result->PL/loopNum, hybrid_result->IL/loopNum, hybrid_result->HL/loopNum, hybrid_result->NL/loopNum, hybrid_result->COV/loopNum);
-		printf("\thybrid_male\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", loopNum, hybrid_result->R_1/loopNum, hybrid_result->RL_1/loopNum, hybrid_result->PL_1/loopNum, hybrid_result->IL_1/loopNum, hybrid_result->HL_1/loopNum, hybrid_result->NL_1/loopNum, hybrid_result->COV_1/loopNum);
+		for (i = 0; i < 2; ++i) {
+			printf("\thybrid_%d\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", i, loopNum, hybrid_result->R[i]/loopNum, hybrid_result->RL[i]/loopNum, hybrid_result->PL[i]/loopNum, hybrid_result->IL[i]/loopNum, hybrid_result->HL[i]/loopNum, hybrid_result->NL[i]/loopNum, hybrid_result->COV[i]/loopNum);
+		}
 	}
 	if (oa->calculate_HNBI == 1) {
-		printf("\tHNBI_female\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", loopNum, HNBI_result->R/loopNum, HNBI_result->RL/loopNum, HNBI_result->PL/loopNum, HNBI_result->IL/loopNum, HNBI_result->HL/loopNum, HNBI_result->NL/loopNum, HNBI_result->COV/loopNum);
-		printf("\tHNBI_male\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", loopNum, HNBI_result->R_1/loopNum, HNBI_result->RL_1/loopNum, HNBI_result->PL_1/loopNum, HNBI_result->IL_1/loopNum, HNBI_result->HL_1/loopNum, HNBI_result->NL_1/loopNum, HNBI_result->COV_1/loopNum);
+		for (i = 0; i < 2; ++i) {
+			printf("\tHNBI_%d\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", i, loopNum, HNBI_result->R[i]/loopNum, HNBI_result->RL[i]/loopNum, HNBI_result->PL[i]/loopNum, HNBI_result->IL[i]/loopNum, HNBI_result->HL[i]/loopNum, HNBI_result->NL[i]/loopNum, HNBI_result->COV[i]/loopNum);
+		}
 	}
 	if (oa->calculate_RENBI == 1) {
-		printf("\tRENBI_female\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", loopNum, RENBI_result->R/loopNum, RENBI_result->RL/loopNum, RENBI_result->PL/loopNum, RENBI_result->IL/loopNum, RENBI_result->HL/loopNum, RENBI_result->NL/loopNum, RENBI_result->COV/loopNum);
-		printf("\tRENBI_male\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", loopNum, RENBI_result->R_1/loopNum, RENBI_result->RL_1/loopNum, RENBI_result->PL_1/loopNum, RENBI_result->IL_1/loopNum, RENBI_result->HL_1/loopNum, RENBI_result->NL_1/loopNum, RENBI_result->COV_1/loopNum);
+		for (i = 0; i < 2; ++i) {
+			printf("\tRENBI_%d\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", i, loopNum, RENBI_result->R[i]/loopNum, RENBI_result->RL[i]/loopNum, RENBI_result->PL[i]/loopNum, RENBI_result->IL[i]/loopNum, RENBI_result->HL[i]/loopNum, RENBI_result->NL[i]/loopNum, RENBI_result->COV[i]/loopNum);
+		}
 	}
 
 	free(user_gender); free(user_age);
@@ -307,49 +333,44 @@ static void do_work_merge(void) {
 }
 
 static void metrics_add_add(struct Metrics_Bip *sum, struct Metrics_Bip *single) {
-	sum->R +=  single->R;
-	sum->RL += single->RL;
-	sum->PL += single->PL;
-	sum->HL += single->HL;
-	sum->IL += single->IL;
-	sum->NL += single->NL;
-	sum->COV += single->COV;
-
-	sum->R_1 +=  single->R_1;
-	sum->RL_1 += single->RL_1;
-	sum->PL_1 += single->PL_1;
-	sum->HL_1 += single->HL_1;
-	sum->IL_1 += single->IL_1;
-	sum->NL_1 += single->NL_1;
-	sum->COV_1 += single->COV_1;
+	int i;
+	for (i = 0; i < 15; ++i) {
+		sum->R[i] +=  single->R[i];
+		sum->RL[i] += single->RL[i];
+		sum->PL[i] += single->PL[i];
+		sum->HL[i] += single->HL[i];
+		sum->IL[i] += single->IL[i];
+		sum->NL[i] += single->NL[i];
+		sum->COV[i] += single->COV[i];
+	}
 }
 
-static void do_work_divide_mass(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct Metrics_Bip *result, int *user_gender, int *user_age, int L) {
-	struct Metrics_Bip *mass_result = mass_Bip(tr1, tr2, te1, te2, trsim, user_gender, user_age, L);
+static void do_work_divide_mass(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct Metrics_Bip *result, struct User_ATT *ua, int L) {
+	struct Metrics_Bip *mass_result = mass_Bip(tr1, tr2, te1, te2, trsim, ua, L);
 	metrics_add_add(result, mass_result);
 	free_MetricsBip(mass_result);
 }
 
-static void do_work_divide_heat(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct Metrics_Bip *result, int *user_gender, int *user_age, int L) {
-	struct Metrics_Bip *heats_result = heats_Bip(tr1, tr2, te1, te2, trsim, user_gender, user_age, L);
+static void do_work_divide_heat(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct Metrics_Bip *result, struct User_ATT *ua, int L) {
+	struct Metrics_Bip *heats_result = heats_Bip(tr1, tr2, te1, te2, trsim, ua, L);
 	metrics_add_add(result, heats_result);
 	free_MetricsBip(heats_result);
 }
 
-static void do_work_divide_hybrid(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, double hybrid_param, struct Metrics_Bip *result, int *user_gender, int *user_age, int L) {
-	struct Metrics_Bip *hybrid_result = hybrid_Bip(tr1, tr2, te1, te2, trsim, hybrid_param, user_gender, user_age, L);
+static void do_work_divide_hybrid(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, double hybrid_param, struct Metrics_Bip *result, struct User_ATT *ua, int L) {
+	struct Metrics_Bip *hybrid_result = hybrid_Bip(tr1, tr2, te1, te2, trsim, hybrid_param, ua, L);
 	metrics_add_add(result, hybrid_result);
 	free_MetricsBip(hybrid_result);
 }
 
-static void do_work_divide_HNBI(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, double HNBI_param, struct Metrics_Bip *result, int *user_gender, int *user_age, int L) {
-	struct Metrics_Bip *HNBI_result = HNBI_Bip(tr1, tr2, te1, te2, trsim, HNBI_param, user_gender, user_age, L);
+static void do_work_divide_HNBI(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, double HNBI_param, struct Metrics_Bip *result, struct User_ATT *ua, int L) {
+	struct Metrics_Bip *HNBI_result = HNBI_Bip(tr1, tr2, te1, te2, trsim, HNBI_param, ua, L);
 	metrics_add_add(result, HNBI_result);
 	free_MetricsBip(HNBI_result);
 }
 
-static void do_work_divide_RENBI(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, double RENBI_param, struct Metrics_Bip *result, int *user_gender, int *user_age, int L) {
-	struct Metrics_Bip *RENBI_result = RENBI_Bip(tr1, tr2, te1, te2, trsim, RENBI_param, user_gender, user_age, L);
+static void do_work_divide_RENBI(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, double RENBI_param, struct Metrics_Bip *result, struct User_ATT *ua, int L) {
+	struct Metrics_Bip *RENBI_result = RENBI_Bip(tr1, tr2, te1, te2, trsim, RENBI_param, ua, L);
 	metrics_add_add(result, RENBI_result);
 	free_MetricsBip(RENBI_result);
 }

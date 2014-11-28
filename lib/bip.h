@@ -61,23 +61,15 @@ void divide_Bip(struct Bip *bipi1, struct Bip *bipi2, double rate, struct LineFi
 struct LineFile *similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, int target);
 struct LineFile *mass_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2);
 
-
+#define CA_METRICS_BIP 15
 struct Metrics_Bip {
-	double R;
-	double RL;
-	double PL;
-	double HL;
-    double IL;
-    double NL;
-	double COV;
-
-	double R_1;
-	double RL_1;
-	double PL_1;
-	double HL_1;
-    double IL_1;
-    double NL_1;
-	double COV_1;
+	double R[CA_METRICS_BIP];
+	double RL[CA_METRICS_BIP];
+	double PL[CA_METRICS_BIP];
+	double HL[CA_METRICS_BIP];
+	double IL[CA_METRICS_BIP];
+	double NL[CA_METRICS_BIP];
+	double COV[CA_METRICS_BIP];
 
 	int *topL;
 	int L;
@@ -87,16 +79,24 @@ void clean_MetricsBip(struct Metrics_Bip *m);
 void free_MetricsBip(struct Metrics_Bip *m);
 
 //recommend methods
+struct User_ATT {
+	int *gender;
+	int *age;
+	int testset_female_node_num;
+	int testset_male_node_num;
+	int testset_female_edge_num;
+	int testset_male_edge_num;
+};
 
-struct Metrics_Bip *mass_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainSim, int *user_gender, int *user_age, int L);
+struct Metrics_Bip *mass_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainSim, struct User_ATT *ua, int L);
 
-struct Metrics_Bip *heats_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainSim, int *user_gender, int *user_age, int L);
+struct Metrics_Bip *heats_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainSim, struct User_ATT *ua, int L);
 
-struct Metrics_Bip *HNBI_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainSim, double HNBI_param, int *user_gender, int *user_age, int L);
+struct Metrics_Bip *HNBI_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainSim, double HNBI_param, struct User_ATT *ua, int L);
 
-struct Metrics_Bip *RENBI_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainSim, double RENBI_param, int *user_gender, int *user_age, int L);
+struct Metrics_Bip *RENBI_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainSim, double RENBI_param, struct User_ATT *ua, int L);
 
-struct Metrics_Bip *hybrid_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainSim, double hybrid_param, int *user_gender, int *user_age, int L);
+struct Metrics_Bip *hybrid_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainSim, double hybrid_param, struct User_ATT *ua, int L);
 
 int *mass_getBK_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *userSim, double rate);
 

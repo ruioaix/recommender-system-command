@@ -579,25 +579,21 @@ struct LineFile *mass_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2) {
 	return simfile;
 }
 
+/*********************************************************************/
 struct Metrics_Bip *create_MetricsBip(void) {
 	struct Metrics_Bip *lp = malloc(sizeof(struct Metrics_Bip));
 	assert(lp != NULL);
 
-	lp->R = 0;
-	lp->RL = 0;
-	lp->PL = 0;
-	lp->HL = 0;
-	lp->IL = 0;
-	lp->NL = 0;
-	lp->COV = 0;
-
-	lp->R_1 = 0;
-	lp->RL_1 = 0;
-	lp->PL_1 = 0;
-	lp->HL_1 = 0;
-	lp->IL_1 = 0;
-	lp->NL_1 = 0;
-	lp->COV_1 = 0;
+	int i;
+	for (i = 0; i < CA_METRICS_BIP; ++i) {
+		lp->R[i] = 0;
+		lp->RL[i] = 0;
+		lp->PL[i] = 0;
+		lp->HL[i] = 0;
+		lp->IL[i] = 0;
+		lp->NL[i] = 0;
+		lp->COV[i] = 0;
+	}
 
 	lp->L = 0;
 	lp->topL = NULL;
@@ -606,20 +602,18 @@ struct Metrics_Bip *create_MetricsBip(void) {
 
 //free(NULL) is ok.
 void clean_MetricsBip(struct Metrics_Bip *lp) {
-	lp->R = 0;
-	lp->RL = 0;
-	lp->PL = 0;
-	lp->HL = 0;
-	lp->IL = 0;
-	lp->NL = 0;
-	lp->COV = 0;
-	lp->R_1 = 0;
-	lp->RL_1 = 0;
-	lp->PL_1 = 0;
-	lp->HL_1 = 0;
-	lp->IL_1 = 0;
-	lp->NL_1 = 0;
-	lp->COV_1 = 0;
+
+	int i;
+	for (i = 0; i < CA_METRICS_BIP; ++i) {
+		lp->R[i] = 0;
+		lp->RL[i] = 0;
+		lp->PL[i] = 0;
+		lp->HL[i] = 0;
+		lp->IL[i] = 0;
+		lp->NL[i] = 0;
+		lp->COV[i] = 0;
+	}
+
 	lp->L = 0;
 	free(lp->topL);
 	lp->topL = NULL;
@@ -661,6 +655,10 @@ struct Bip_recommend_param{
 
 	int *user_gender;
 	int *user_age;
+	int testset_female_node_num;
+	int testset_female_edge_num;
+	int testset_male_node_num;
+	int testset_male_edge_num;
 
 	int L;
 
@@ -672,7 +670,7 @@ struct Bip_recommend_param{
 //Warning: about unselected_list_length, I use bipii->idNum, not bipii->maxId. 
 //	but I believe in linyuan's paper, she use the bipii->maxId. 
 //	I think bipii->idNum make more sence.
-static void metrics_R_RL_PL_Bip(int i1, long *i1count, int i2idNum, struct Bip *testi1, int L, int *rank, int *user_gender, int *user_age, double *R, double *RL, double *PL, double *R_1, double *RL_1, double *PL_1) {
+static void metrics_R_RL_PL_Bip(int i1, long *i1count, int i2idNum, struct Bip *testi1, int L, int *rank, int *user_gender, int *user_age, double *R, double *RL, double *PL) {
 	if (i1<testi1->maxId + 1 &&  testi1->count[i1]) {
 		int unselected_list_length = i2idNum - i1count[i1];
 		int rank_i1_j = 0;
@@ -687,27 +685,66 @@ static void metrics_R_RL_PL_Bip(int i1, long *i1count, int i2idNum, struct Bip *
 		}
 
 		if (user_gender[i1] == 0) {
-			*R += (double)rank_i1_j/(double)unselected_list_length;
-			*RL += (double)DiL/(double)(testi1->count[i1]);
-			*PL += (double)DiL/(double)L;
+			R[0] += (double)rank_i1_j/(double)unselected_list_length;
+			RL[0] += (double)DiL/(double)(testi1->count[i1]);
+			PL[0] += (double)DiL/(double)L;
 		}
 		else if (user_gender[i1] == 1) {
-			*R_1 += (double)rank_i1_j/(double)unselected_list_length;
-			*RL_1 += (double)DiL/(double)(testi1->count[i1]);
-			*PL_1 += (double)DiL/(double)L;
+			R[1] += (double)rank_i1_j/(double)unselected_list_length;
+			RL[1] += (double)DiL/(double)(testi1->count[i1]);
+			PL[1] += (double)DiL/(double)L;
+		}
+		if (user_age[i1] == 1) {
+			R[2] += (double)rank_i1_j/(double)unselected_list_length;
+			RL[2] += (double)DiL/(double)(testi1->count[i1]);
+			PL[2] += (double)DiL/(double)L;
+		}
+		else if (user_age[i1] == 18) {
+			R[3] += (double)rank_i1_j/(double)unselected_list_length;
+			RL[3] += (double)DiL/(double)(testi1->count[i1]);
+			PL[3] += (double)DiL/(double)L;
+		}
+		else if (user_age[i1] == 25) {
+			 R[4] += (double)rank_i1_j/(double)unselected_list_length;
+			RL[4] += (double)DiL/(double)(testi1->count[i1]);
+			PL[4] += (double)DiL/(double)L;
+		}
+		else if (user_age[i1] == 35) {
+			 R[5] += (double)rank_i1_j/(double)unselected_list_length;
+			RL[5] += (double)DiL/(double)(testi1->count[i1]);
+			PL[5] += (double)DiL/(double)L;
+		}
+		else if (user_age[i1] == 45) {
+			 R[6] += (double)rank_i1_j/(double)unselected_list_length;
+			RL[6] += (double)DiL/(double)(testi1->count[i1]);
+			PL[6] += (double)DiL/(double)L;
+		}
+		else if (user_age[i1] == 50) {
+			 R[7] += (double)rank_i1_j/(double)unselected_list_length;
+			RL[7] += (double)DiL/(double)(testi1->count[i1]);
+			PL[7] += (double)DiL/(double)L;
+		}
+		else if (user_age[i1] == 56) {
+			 R[8] += (double)rank_i1_j/(double)unselected_list_length;
+			RL[8] += (double)DiL/(double)(testi1->count[i1]);
+			PL[8] += (double)DiL/(double)L;
+		}
+		else {
+			printer("wrong age");
+			exit(EXIT_FAILURE);
 		}
 
 	}
 }
 //IL is intrasimilarity
-static void metrics_IL_Bip(int i1maxId, long *i1count, int i1idNum, int i2maxId, int L, int *Hij, struct iidNet *sim, int *user_gender, int *user_age, double *IL_re, double *IL_1_re) {
+static void metrics_IL_Bip(int i1maxId, long *i1count, int i1idNum, int i2maxId, int L, int *Hij, struct iidNet *sim, int *user_gender, int *user_age, double *IL) {
 	if (!sim) return;
 	double *sign = calloc((i2maxId + 1), sizeof(double));
 	assert(sign != NULL);
 	int i, j;
 	long k;
-	double IL = 0;
-	double IL_1 = 0;
+	IL[0] = 0;
+	IL[1] = 0;
 	for (i=0; i<i1maxId + 1; ++i) {
 		if (i1count[i]) {
 			if (user_gender[i] == 0) {
@@ -720,7 +757,7 @@ static void metrics_IL_Bip(int i1maxId, long *i1count, int i1idNum, int i2maxId,
 					}
 					for (k=j+1; k<L; ++k) {
 						id = tmp[k];
-						IL += sign[id];
+						IL[0] += sign[id];
 					}
 				}
 			}
@@ -734,21 +771,19 @@ static void metrics_IL_Bip(int i1maxId, long *i1count, int i1idNum, int i2maxId,
 					}
 					for (k=j+1; k<L; ++k) {
 						id = tmp[k];
-						IL_1 += sign[id];
+						IL[1] += sign[id];
 					}
 				}
 			}
 		}
 	}
 	free(sign);
-	IL /= L*(L-1);
-	IL_1 /= L*(L-1);
-	*IL_re = 2*IL;
-	*IL_1_re = 2*IL_1;
+	IL[0] /= L*(L-1)/2;
+	IL[1] /= L*(L-1)/2;
 }
 
 //HL is hamming distance.
-static void metrics_HL_COV_Bip(int i1maxId, long *i1count, int i2maxId, int L, int *Hij, int *user_gender, int *user_age, double *HL, double *HL_1, double *COV, double *COV_1) {
+static void metrics_HL_COV_Bip(int i1maxId, long *i1count, int i2maxId, int L, int *Hij, int *user_gender, int *user_age, double *HL, double *COV) {
 	int *sign = calloc((i2maxId + 1), sizeof(int));
 	int *sign2 = calloc((i2maxId + 1), sizeof(int));
 	int *sign3 = calloc((i2maxId + 1), sizeof(int));
@@ -758,7 +793,7 @@ static void metrics_HL_COV_Bip(int i1maxId, long *i1count, int i2maxId, int L, i
 	int cou = 0, cou_1=0;
 	int Cij = 0;
 	*HL = 0;
-	*HL_1 = 0;
+	HL[1] = 0;
 	for (i=0; i<i1maxId + 1; ++i) {
 		if (i1count[i]) {
 			if (user_gender[i] == 0) {
@@ -795,7 +830,7 @@ static void metrics_HL_COV_Bip(int i1maxId, long *i1count, int i2maxId, int L, i
 								++Cij;
 							}
 						}
-						*HL_1 += 1 - ((double)Cij)/(double)L;
+						HL[1] += 1 - ((double)Cij)/(double)L;
 						//printf("%d %d %d\n", i, j, Cij);
 						++cou_1;
 					}
@@ -813,16 +848,16 @@ static void metrics_HL_COV_Bip(int i1maxId, long *i1count, int i2maxId, int L, i
 		}
 	}
 	*COV = (double)cov/i2maxId;
-	*COV_1 = (double)cov_1/i2maxId;
+	COV[1] = (double)cov_1/i2maxId;
 	free(sign);
 	free(sign2);
 	free(sign3);
 	*HL /= cou;
-	*HL_1 /= cou_1;
+	HL[1] /= cou_1;
 }
 
 //NL is popularity.
-static void metrics_NL_Bip(int i1maxId, long *i1count, int i1idNum, long *i2count, int L, int *Hij, int *user_gender, int *user_age, double *NL_re, double *NL_1_re) {
+static void metrics_NL_Bip(int i1maxId, long *i1count, int i1idNum, long *i2count, int L, int *Hij, int *user_gender, int *user_age, double *NLx) {
 	int i,j;
 	long NL = 0;
 	long NL_1 = 0;
@@ -844,8 +879,8 @@ static void metrics_NL_Bip(int i1maxId, long *i1count, int i1idNum, long *i2coun
 	}
 	NL /= L;
 	NL_1 /= L;
-	*NL_re = NL;
-	*NL_1_re = NL_1;
+	NLx[0] = NL;
+	NLx[1] = NL_1;
 }
 
 static inline void Bip_core_common_part(struct Bip_recommend_param *args, int *i2id, int *rank, int *topL_i1L, int L) {
@@ -1506,34 +1541,29 @@ static struct Metrics_Bip *recommend_Bip(void (*recommend_core)(struct Bip_recom
 	int *user_gender = args->user_gender;
 	int *user_age = args->user_age;
 
-	int i;
-	int maleNum = 0, femaleNum = 0;
-	int meNum = 0, feNum = 0;
-	for (i = 0; i < args->testi1->maxId + 1; ++i) {
-		if (args->testi1->count[i]) {
-			if (user_gender[i] == 0) {
-				femaleNum++;
-				feNum += args->testi1->count[i];
-			}	
-			if (user_gender[i] == 1) {
-				maleNum++;
-				meNum += args->testi1->count[i];
-			}
-		}
-	}
+	int maleNodeTestNum = args->testset_male_node_num;
+	int femaleNodeTestNum = args->testset_female_node_num;
+	int maleEdgeTestNum = args->testset_male_edge_num;
+	int femaleEdgeTestNum= args->testset_female_edge_num;
 
-	printf("a: %ld, f: %d, m: %d, add: %d\n", args->testi1->edgesNum, feNum, meNum, feNum + meNum);
+	printf("a: %ld, f: %d, m: %d, add: %d\n", args->testi1->edgesNum, femaleEdgeTestNum, maleEdgeTestNum, femaleEdgeTestNum + maleEdgeTestNum);
+	int i;
 
 	struct iidNet *itemSim = args->itemSim;
 
  	// all L is from this function. if you want to change, change the L below.
-	int L = args->L;;
+	int L = args->L;
 
-	double R, RL, PL, HL, IL, NL, COV;
-	R=RL=PL=HL=IL=NL=COV=0;
+	struct Metrics_Bip *retn = create_MetricsBip();
 
-	double R_1, RL_1, PL_1, HL_1, IL_1, NL_1, COV_1;
-	R_1=RL_1=PL_1=HL_1=IL_1=NL_1=COV_1=0;
+	double *R, *RL, *PL, *HL, *IL, *NL, *COV;
+	R=retn->R;
+	RL=retn->RL;
+	PL=retn->PL;
+	HL=retn->HL;
+	IL=retn->IL;
+	NL=retn->NL;
+	COV=retn->COV;
 
 	double *i1source = malloc((i1maxId + 1)*sizeof(double));
 	assert(i1source != NULL);
@@ -1569,7 +1599,7 @@ static struct Metrics_Bip *recommend_Bip(void (*recommend_core)(struct Bip_recom
 			args->i1 = i;
 			recommend_core(args);
 			Bip_core_common_part(args, i2id, rank, topL + i*L, L);
-			metrics_R_RL_PL_Bip(i, i1count, i2maxId/*i2idNum*/, args->testi1, L, rank, user_gender, user_age, &R, &RL, &PL, &R_1, &RL_1, &PL_1);
+			metrics_R_RL_PL_Bip(i, i1count, i2maxId/*i2idNum*/, args->testi1, L, rank, user_gender, user_age, R, RL, PL);
 		}
 		//printf("%d\t", i);fflush(stdout);
 	}
@@ -1577,41 +1607,35 @@ static struct Metrics_Bip *recommend_Bip(void (*recommend_core)(struct Bip_recom
 	//R /= args->testi1->edgesNum;
 	//RL /= args->testi1->idNum;
 	//PL /= args->testi1->idNum;
-	R /= feNum;
-	RL /= femaleNum;
-	PL /= femaleNum;
-	R_1 /= meNum;
-	RL_1 /= maleNum;
-	PL_1 /= maleNum;
+	R[0] /= femaleEdgeTestNum;
+	RL[0] /= femaleNodeTestNum;
+	PL[0] /= femaleNodeTestNum;
+	R[1] /= maleEdgeTestNum;
+	RL[1] /= maleNodeTestNum;
+	PL[1] /= maleNodeTestNum;
 
-	metrics_HL_COV_Bip(i1maxId, i1count, i2maxId, L, topL, user_gender, user_age, &HL, &HL_1, &COV, &COV_1);
+	metrics_HL_COV_Bip(i1maxId, i1count, i2maxId, L, topL, user_gender, user_age, HL, COV);
 
-	metrics_IL_Bip(i1maxId, i1count, i1idNum, i2maxId, L, topL, itemSim, user_gender, user_age, &IL, &IL_1);
-	IL /= femaleNum;
-	IL_1 /= maleNum;
+	metrics_IL_Bip(i1maxId, i1count, i1idNum, i2maxId, L, topL, itemSim, user_gender, user_age, IL);
+	IL[0] /= femaleNodeTestNum;
+	IL[1] /= maleNodeTestNum;
 
-	metrics_NL_Bip(i1maxId, i1count, i1idNum, i2count, L, topL, user_gender, user_age, &NL, &NL_1);
-	NL /= femaleNum;
-	NL_1 /= maleNum;
+	metrics_NL_Bip(i1maxId, i1count, i1idNum, i2count, L, topL, user_gender, user_age, NL);
+	NL[0] /= femaleNodeTestNum;
+	NL[1] /= maleNodeTestNum;
 	
-	struct Metrics_Bip *retn = create_MetricsBip();
-	retn->R = R;
-	retn->RL = RL;
-	retn->PL = PL;
-	retn->HL = HL;
-	retn->IL = IL;
-	retn->NL = NL;
-	retn->COV = COV;
+	for (i = 0; i < CA_METRICS_BIP; ++i) {
+		retn->R[i] = R[i];
+		retn->RL[i] = RL[i];
+		retn->PL[i] = PL[i];
+		retn->HL[i] = HL[i];
+		retn->IL[i] = IL[i];
+		retn->NL[i] = NL[i];
+		retn->COV[i] = COV[i];
+	}
 	retn->topL = topL;
 	retn->L = L;
 
-	retn->R_1 = R_1;
-	retn->RL_1 = RL_1;
-	retn->PL_1 = PL_1;
-	retn->HL_1 = HL_1;
-	retn->IL_1 = IL_1;
-	retn->NL_1 = NL_1;
-	retn->COV_1 = COV_1;
 
 	//printf("hybrid:\tR: %f, PL: %f, IL: %f, HL: %f, NL: %f\n", R, PL, IL, HL, NL);
 	free(i1source);
@@ -1625,7 +1649,7 @@ static struct Metrics_Bip *recommend_Bip(void (*recommend_core)(struct Bip_recom
 }
 
 
-struct Metrics_Bip *mass_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, int *user_gender, int *user_age, int L) {
+struct Metrics_Bip *mass_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, struct User_ATT *ua, int L) {
 	struct Bip_recommend_param param;
 	param.itemSim = itemSim;
 
@@ -1633,15 +1657,19 @@ struct Metrics_Bip *mass_Bip(struct Bip *traini1, struct Bip *traini2, struct Bi
 	param.traini2 = traini2;
 	param.testi1 = testi1;
 
-	param.user_gender = user_gender;
-	param.user_age = user_age;
+	param.user_gender = ua->gender;
+	param.user_age = ua->age;
+	param.testset_female_node_num = ua->testset_female_node_num;
+	param.testset_female_edge_num = ua->testset_female_edge_num;
+	param.testset_male_node_num = ua->testset_male_node_num;
+	param.testset_male_edge_num = ua->testset_male_edge_num;
 
 	param.L = L;
 
 	return recommend_Bip(mass_recommend_Bip, &param);
 }
 
-struct Metrics_Bip *heats_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, int *user_gender, int *user_age, int L) {
+struct Metrics_Bip *heats_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, struct User_ATT *ua, int L) {
 	struct Bip_recommend_param param;
 	param.itemSim = itemSim;
 
@@ -1649,14 +1677,18 @@ struct Metrics_Bip *heats_Bip(struct Bip *traini1, struct Bip *traini2, struct B
 	param.traini2 = traini2;
 	param.testi1 = testi1;
 
-	param.user_gender = user_gender;
-	param.user_age = user_age;
+	param.user_gender = ua->gender;
+	param.user_age = ua->age;
+	param.testset_female_node_num = ua->testset_female_node_num;
+	param.testset_female_edge_num = ua->testset_female_edge_num;
+	param.testset_male_node_num = ua->testset_male_node_num;
+	param.testset_male_edge_num = ua->testset_male_edge_num;
 	param.L = L;
 
 	return recommend_Bip(heats_recommend_Bip, &param);
 }
 
-struct Metrics_Bip *HNBI_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, double HNBI_param, int *user_gender, int *user_age, int L) {
+struct Metrics_Bip *HNBI_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, double HNBI_param, struct User_ATT *ua, int L) {
 	struct Bip_recommend_param param;
 	param.itemSim = itemSim;
 	param.HNBI_param = HNBI_param;
@@ -1665,13 +1697,17 @@ struct Metrics_Bip *HNBI_Bip(struct Bip *traini1, struct Bip *traini2, struct Bi
 	param.traini2 = traini2;
 	param.testi1 = testi1;
 
-	param.user_gender = user_gender;
-	param.user_age = user_age;
+	param.user_gender = ua->gender;
+	param.user_age = ua->age;
+	param.testset_female_node_num = ua->testset_female_node_num;
+	param.testset_female_edge_num = ua->testset_female_edge_num;
+	param.testset_male_node_num = ua->testset_male_node_num;
+	param.testset_male_edge_num = ua->testset_male_edge_num;
 	param.L = L;
 	return recommend_Bip(HNBI_recommend_Bip, &param);
 }
 
-struct Metrics_Bip *RENBI_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, double RENBI_param, int *user_gender, int *user_age, int L) {
+struct Metrics_Bip *RENBI_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, double RENBI_param, struct User_ATT *ua, int L) {
 	struct Bip_recommend_param param;
 	param.itemSim = itemSim;
 	param.RENBI_param = RENBI_param;
@@ -1680,13 +1716,17 @@ struct Metrics_Bip *RENBI_Bip(struct Bip *traini1, struct Bip *traini2, struct B
 	param.traini2 = traini2;
 	param.testi1 = testi1;
 
-	param.user_gender = user_gender;
-	param.user_age = user_age;
+	param.user_gender = ua->gender;
+	param.user_age = ua->age;
+	param.testset_female_node_num = ua->testset_female_node_num;
+	param.testset_female_edge_num = ua->testset_female_edge_num;
+	param.testset_male_node_num = ua->testset_male_node_num;
+	param.testset_male_edge_num = ua->testset_male_edge_num;
 	param.L = L;
 	return recommend_Bip(RENBI_recommend_Bip, &param);
 }
 
-struct Metrics_Bip *hybrid_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, double hybrid_param, int *user_gender, int *user_age, int L) {
+struct Metrics_Bip *hybrid_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, double hybrid_param, struct User_ATT *ua, int L) {
 	struct Bip_recommend_param param;
 	param.itemSim = itemSim;
 	param.hybrid_param = hybrid_param;
@@ -1695,8 +1735,12 @@ struct Metrics_Bip *hybrid_Bip(struct Bip *traini1, struct Bip *traini2, struct 
 	param.traini2 = traini2;
 	param.testi1 = testi1;
 
-	param.user_gender = user_gender;
-	param.user_age = user_age;
+	param.user_gender = ua->gender;
+	param.user_age = ua->age;
+	param.testset_female_node_num = ua->testset_female_node_num;
+	param.testset_female_edge_num = ua->testset_female_edge_num;
+	param.testset_male_node_num = ua->testset_male_node_num;
+	param.testset_male_edge_num = ua->testset_male_edge_num;
 	param.L = L;
 	return recommend_Bip(hybrid_recommend_Bip, &param);
 }
@@ -1750,7 +1794,7 @@ int *mass_getBK_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1
 
 				R=PL=0;
 				double RL = 0;
-				metrics_R_RL_PL_Bip(i, traini1->count, traini2->idNum, testi1, L, rank, NULL, NULL, &R, &RL, &PL, NULL, NULL, NULL);
+				metrics_R_RL_PL_Bip(i, traini1->count, traini2->idNum, testi1, L, rank, NULL, NULL, &R, &RL, &PL);
 				//R will never be 0, because i is in testi1.
 				if (bR > R) {
 					bR = R;
