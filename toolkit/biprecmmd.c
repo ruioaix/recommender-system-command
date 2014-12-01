@@ -248,21 +248,22 @@ static void do_work_divide(struct OptionArgs *oa) {
 		tr1 = create_Bip(bigp, 1);
 		tr2 = create_Bip(bigp, 2);
 
-		ua.testset_female_node_num = 0;
-		ua.testset_female_edge_num = 0;
-		ua.testset_male_node_num = 0;
-		ua.testset_male_edge_num = 0;
+		for (i = 0; i < CA_METRICS_BIP; ++i) {
+			ua.testset_node_num[i] = 0;	
+			ua.testset_edge_num[i] = 0;	
+		}
+
 		for (i = 0; i < te1->maxId + 1; ++i) {
 			if (te1->count[i]) {
-				if (user_gender[i] == 0) {
-					(ua.testset_female_node_num)++;
-					ua.testset_female_edge_num += te1->count[i];
-				}	
-				if (user_gender[i] == 1) {
-					(ua.testset_male_node_num)++;
-					ua.testset_male_edge_num += te1->count[i];
-				}
+				(ua.testset_node_num[user_gender[i]]) ++;
+				ua.testset_edge_num[user_gender[i]] += te1->count[i];
+				(ua.testset_node_num[user_age[i]]) ++;
+				ua.testset_edge_num[user_age[i]] += te1->count[i];
 			}
+		}
+		
+		for (i = 0; i < CA_METRICS_BIP; ++i) {
+			printf("%d, %d, %d\n", i, ua.testset_node_num[i], ua.testset_edge_num[i]);
 		}
 
 		struct LineFile *simf = similarity_Bip(tr1, tr2, 2);
@@ -294,27 +295,27 @@ static void do_work_divide(struct OptionArgs *oa) {
 
 	int loopNum = oa->loopNum;
 	if (oa->calculate_mass == 1) {
-		for (i = 0; i < 2; ++i) {
+		for (i = 0; i < CA_METRICS_BIP; ++i) {
 			printf("\tmass_%d\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", i, loopNum, mass_result->R[i]/loopNum, mass_result->RL[i]/loopNum, mass_result->PL[i]/loopNum, mass_result->IL[i]/loopNum, mass_result->HL[i]/loopNum, mass_result->NL[i]/loopNum, mass_result->COV[i]/loopNum);
 		}
 	}
 	if (oa->calculate_heat == 1) {
-		for (i = 0; i < 2; ++i) {
+		for (i = 0; i < CA_METRICS_BIP; ++i) {
 			printf("\theats_%d\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", i, loopNum, heats_result->R[i]/loopNum, heats_result->RL[i]/loopNum, heats_result->PL[i]/loopNum, heats_result->IL[i]/loopNum, heats_result->HL[i]/loopNum, heats_result->NL[i]/loopNum, heats_result->COV[i]/loopNum);
 		}
 	}
 	if (oa->calculate_hybrid == 1) {
-		for (i = 0; i < 2; ++i) {
+		for (i = 0; i < CA_METRICS_BIP; ++i) {
 			printf("\thybrid_%d\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", i, loopNum, hybrid_result->R[i]/loopNum, hybrid_result->RL[i]/loopNum, hybrid_result->PL[i]/loopNum, hybrid_result->IL[i]/loopNum, hybrid_result->HL[i]/loopNum, hybrid_result->NL[i]/loopNum, hybrid_result->COV[i]/loopNum);
 		}
 	}
 	if (oa->calculate_HNBI == 1) {
-		for (i = 0; i < 2; ++i) {
+		for (i = 0; i < CA_METRICS_BIP; ++i) {
 			printf("\tHNBI_%d\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", i, loopNum, HNBI_result->R[i]/loopNum, HNBI_result->RL[i]/loopNum, HNBI_result->PL[i]/loopNum, HNBI_result->IL[i]/loopNum, HNBI_result->HL[i]/loopNum, HNBI_result->NL[i]/loopNum, HNBI_result->COV[i]/loopNum);
 		}
 	}
 	if (oa->calculate_RENBI == 1) {
-		for (i = 0; i < 2; ++i) {
+		for (i = 0; i < CA_METRICS_BIP; ++i) {
 			printf("\tRENBI_%d\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", i, loopNum, RENBI_result->R[i]/loopNum, RENBI_result->RL[i]/loopNum, RENBI_result->PL[i]/loopNum, RENBI_result->IL[i]/loopNum, RENBI_result->HL[i]/loopNum, RENBI_result->NL[i]/loopNum, RENBI_result->COV[i]/loopNum);
 		}
 	}
@@ -334,7 +335,7 @@ static void do_work_merge(void) {
 
 static void metrics_add_add(struct Metrics_Bip *sum, struct Metrics_Bip *single) {
 	int i;
-	for (i = 0; i < 15; ++i) {
+	for (i = 0; i < CA_METRICS_BIP; ++i) {
 		sum->R[i] +=  single->R[i];
 		sum->RL[i] += single->RL[i];
 		sum->PL[i] += single->PL[i];

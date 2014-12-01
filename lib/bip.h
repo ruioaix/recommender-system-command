@@ -61,7 +61,7 @@ void divide_Bip(struct Bip *bipi1, struct Bip *bipi2, double rate, struct LineFi
 struct LineFile *similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, int target);
 struct LineFile *mass_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2);
 
-#define CA_METRICS_BIP 15
+#define CA_METRICS_BIP 9
 struct Metrics_Bip {
 	double R[CA_METRICS_BIP];
 	double RL[CA_METRICS_BIP];
@@ -82,10 +82,9 @@ void free_MetricsBip(struct Metrics_Bip *m);
 struct User_ATT {
 	int *gender;
 	int *age;
-	int testset_female_node_num;
-	int testset_male_node_num;
-	int testset_female_edge_num;
-	int testset_male_edge_num;
+
+	int testset_node_num[CA_METRICS_BIP];
+	int testset_edge_num[CA_METRICS_BIP];
 };
 
 struct Metrics_Bip *mass_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainSim, struct User_ATT *ua, int L);
