@@ -61,7 +61,7 @@ void divide_Bip(struct Bip *bipi1, struct Bip *bipi2, double rate, struct LineFi
 struct LineFile *similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, int target);
 struct LineFile *mass_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2);
 
-#define CA_METRICS_BIP 9
+#define CA_METRICS_BIP 10 
 struct Metrics_Bip {
 	double R[CA_METRICS_BIP];
 	double RL[CA_METRICS_BIP];

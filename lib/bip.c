@@ -683,6 +683,10 @@ static void metrics_R_RL_PL_Bip(int i1, long *i1count, int i2idNum, struct Bip *
 			}
 		}
 
+		R[0] += (double)rank_i1_j/(double)unselected_list_length;
+		RL[0] += (double)DiL/(double)(testi1->count[i1]);
+		PL[0] += (double)DiL/(double)L;
+
 		R[user_gender[i1]] += (double)rank_i1_j/(double)unselected_list_length;
 		RL[user_gender[i1]] += (double)DiL/(double)(testi1->count[i1]);
 		PL[user_gender[i1]] += (double)DiL/(double)L;
@@ -710,6 +714,7 @@ static void metrics_IL_Bip(int i1maxId, long *i1count, int i1idNum, int i2maxId,
 				}
 				for (k=j+1; k<L; ++k) {
 					id = tmp[k];
+					IL[0] += sign[id];
 					IL[user_gender[i]] += sign[id];
 					IL[user_age[i]] += sign[id];
 				}
@@ -725,6 +730,7 @@ static void metrics_IL_Bip(int i1maxId, long *i1count, int i1idNum, int i2maxId,
 //HL is hamming distance.
 static void metrics_HL_COV_Bip(int i1maxId, long *i1count, int i2maxId, int L, int *Hij, int *user_gender, int *user_age, double *HL, double *COV) {
 	int *sign = calloc((i2maxId + 1), sizeof(int));
+	int *sign1 = calloc((i2maxId + 1), sizeof(int));
 	int *sign2 = calloc((i2maxId + 1)*CA_METRICS_BIP, sizeof(int));
 	assert(sign != NULL);
 	int i, j;
@@ -739,6 +745,7 @@ static void metrics_HL_COV_Bip(int i1maxId, long *i1count, int i2maxId, int L, i
 			memset(sign, 0, (i2maxId + 1)*sizeof(int));
 			for (k=i*L; k<i*L+L; ++k) {
 				sign[Hij[k]] = 1;
+				sign1[Hij[k]] = 1;
 				sign2[user_gender[i]*(i2maxId+1) + Hij[k]] = 1;
 				sign2[user_age[i]*(i2maxId+1) + Hij[k]] = 1;
 			}
@@ -750,6 +757,8 @@ static void metrics_HL_COV_Bip(int i1maxId, long *i1count, int i2maxId, int L, i
 							++Cij;
 						}
 					}
+					HL[0] = += 1 - ((double)Cij)/(double)L;
+					cou[0] ++;
 					HL[user_gender[i]] += 1 - ((double)Cij)/(double)L;
 					cou[user_gender[i]]++;
 					HL[user_age[i]] += 1 - ((double)Cij)/(double)L;
@@ -759,7 +768,7 @@ static void metrics_HL_COV_Bip(int i1maxId, long *i1count, int i2maxId, int L, i
 		}
 	}
 	int cov[CA_METRICS_BIP];
-	for (j = 0; j < CA_METRICS_BIP; ++j) {
+	for (j = 1; j < CA_METRICS_BIP; ++j) {
 		cov[j] = 0;
 		for (i = j*(i2maxId + 1); i < (j+1) * (i2maxId + 1); ++i) {
 			if (sign2[i]) {
@@ -770,6 +779,7 @@ static void metrics_HL_COV_Bip(int i1maxId, long *i1count, int i2maxId, int L, i
 		HL[j] /= cou[j];
 	}
 	free(sign);
+	free(sign1);
 	free(sign2);
 }
 
