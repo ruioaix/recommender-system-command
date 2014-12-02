@@ -757,7 +757,7 @@ static void metrics_HL_COV_Bip(int i1maxId, long *i1count, int i2maxId, int L, i
 							++Cij;
 						}
 					}
-					HL[0] = += 1 - ((double)Cij)/(double)L;
+					HL[0] += 1 - ((double)Cij)/(double)L;
 					cou[0] ++;
 					HL[user_gender[i]] += 1 - ((double)Cij)/(double)L;
 					cou[user_gender[i]]++;
@@ -768,6 +768,13 @@ static void metrics_HL_COV_Bip(int i1maxId, long *i1count, int i2maxId, int L, i
 		}
 	}
 	int cov[CA_METRICS_BIP];
+	for (i = 0; i < i2maxId + 1; ++i) {
+		if (sign1[i]) {
+			cov[0]++;
+		}	
+	}
+	COV[0] = (double)(cov[0])/(i2maxId + 1);
+	HL[0] /= cou[0];
 	for (j = 1; j < CA_METRICS_BIP; ++j) {
 		cov[j] = 0;
 		for (i = j*(i2maxId + 1); i < (j+1) * (i2maxId + 1); ++i) {
@@ -790,6 +797,7 @@ static void metrics_NL_Bip(int i1maxId, long *i1count, int i1idNum, long *i2coun
 		if (i1count[i]) {
 			int *tmp = Hij + i*L;
 			for (j=0; j<L; ++j) {
+				NL[0] += i2count[tmp[j]];
 				NL[user_gender[i]] += i2count[tmp[j]];
 				NL[user_age[i]] += i2count[tmp[j]];
 			}

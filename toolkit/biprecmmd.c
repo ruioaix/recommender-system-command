@@ -261,6 +261,8 @@ static void do_work_divide(struct OptionArgs *oa) {
 				ua.testset_edge_num[user_age[i]] += te1->count[i];
 			}
 		}
+		ua.testset_node_num[0] = te1->idNum;
+		ua.testset_edge_num[0] = te1->edgesNum;
 		
 		for (i = 0; i < CA_METRICS_BIP; ++i) {
 			printf("%d, %d, %d\n", i, ua.testset_node_num[i], ua.testset_edge_num[i]);
