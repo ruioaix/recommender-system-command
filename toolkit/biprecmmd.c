@@ -388,7 +388,7 @@ static void do_work_divide_noscore_RENBI(struct Bip *tr1, struct Bip *tr2, struc
 }
 
 
-static void do_work_divide_score_CF(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct Metrics_Bip *result, struct User_ATT *ua, int L);
+static void do_work_divide_score_CF(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct iidNet *ptrsim, struct Metrics_Bip *result, struct User_ATT *ua, int L);
 
 static void do_work_divide_score(struct OptionArgs *oa) {
 	struct Bip *ds1, *ds2, *tr1, *tr2, *te1, *te2;
@@ -449,8 +449,12 @@ static void do_work_divide_score(struct OptionArgs *oa) {
 		struct iidNet *trsim = create_iidNet(simf);
 		free_LineFile(simf);
 
+		simf = pearson_similarity_Bip(tr1, tr2, 1);
+		struct iidNet *ptrsim = create_iidNet(simf);
+		free_LineFile(simf);
+
 		if (oa->calculate_CF == 1) {
-			do_work_divide_score_CF(tr1, tr2, te1, te2, trsim, CF_result, &ua, oa->L);
+			do_work_divide_score_CF(tr1, tr2, te1, te2, trsim, ptrsim, CF_result, &ua, oa->L);
 		}
 
 		free_LineFile(smlp); 
@@ -473,8 +477,8 @@ static void do_work_divide_score(struct OptionArgs *oa) {
 	free_LineFile(lf); 
 }
 
-static void do_work_divide_score_CF(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct Metrics_Bip *result, struct User_ATT *ua, int L) {
-	struct Metrics_Bip *CF_result = CF_Bip(tr1, tr2, te1, te2, trsim, ua, L);
+static void do_work_divide_score_CF(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct iidNet *ptrsim, struct Metrics_Bip *result, struct User_ATT *ua, int L) {
+	struct Metrics_Bip *CF_result = CF_Bip(tr1, tr2, te1, te2, trsim, ptrsim, ua, L);
 	metrics_add_add(result, CF_result);
 	free_MetricsBip(CF_result);
 }

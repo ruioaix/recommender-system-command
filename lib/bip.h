@@ -60,6 +60,7 @@ void divide_Bip(struct Bip *bipi1, struct Bip *bipi2, double rate, struct LineFi
 //if target == 2, then calculate i2(mostly could be item)'s similarity.
 struct LineFile *similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, int target);
 struct LineFile *mass_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2);
+struct LineFile *pearson_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, int target);
 
 #define CA_METRICS_BIP 10 
 struct Metrics_Bip {
@@ -112,7 +113,7 @@ double *mass_score_rank_Bip(struct Bip *traini1, struct Bip *traini2, int maxsco
 double *mass_scoret3step_rank_Bip(struct Bip *traini1, struct Bip *traini2, double mass_score);
 double *mass_degree_rank_Bip(struct Bip *traini1, struct Bip *traini2, double mass_score);
 
-struct Metrics_Bip *CF_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainSim, struct User_ATT *ua, int L);
+struct Metrics_Bip *CF_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainSim, struct iidNet *ptrsim, struct User_ATT *ua, int L);
 
 
 #endif
