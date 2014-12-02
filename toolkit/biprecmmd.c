@@ -15,6 +15,7 @@ struct OptionArgs {
 	int calculate_hybrid;
 	int calculate_HNBI;
 	int calculate_RENBI;
+	int calculate_CF;
 	char *user_extra_att;
 	char *total_filename;
 	char *train_filename;
@@ -35,6 +36,7 @@ static void display_usage(void) {
 	puts("-H: using hybrid");
 	puts("-N: using HNBI");
 	puts("-E: using RENBI");
+	puts("-C: using CF");
 	puts("-u: users extra attribute");
 	puts("-i: full dataset filename");
 	puts("-T: train dataset filename");
@@ -60,6 +62,7 @@ int main(int argc, char **argv) {
 	OptionArgs.calculate_hybrid = 0;
 	OptionArgs.calculate_HNBI = 0;
 	OptionArgs.calculate_RENBI = 0;
+	OptionArgs.calculate_CF = 0;
 
 	OptionArgs.user_extra_att = NULL;
 	OptionArgs.total_filename = NULL;
@@ -73,7 +76,7 @@ int main(int argc, char **argv) {
 
 	OptionArgs.random = 0;
 
-	static const char *optString = "mhHNEi:T:t:l:u:d:s:L:?";
+	static const char *optString = "mhHNEi:T:t:l:u:d:s:L:C:?";
 
 	struct option longOpts[] = {
 		{"mass", no_argument, NULL, 'm'},
@@ -81,6 +84,7 @@ int main(int argc, char **argv) {
 		{"hybrid", no_argument, NULL, 'H'},
 		{"HNBI", no_argument, NULL, 'N'},
 		{"RENBI", no_argument, NULL, 'E'},
+		{"CF", no_argument, NULL, 'C'},
 
 		{"usersExtraAtt", required_argument, NULL, 'u'},
 		{"dataset", required_argument, NULL, 'i'},
@@ -117,6 +121,9 @@ int main(int argc, char **argv) {
 				break;
 			case 'E':
 				OptionArgs.calculate_RENBI = 1;
+				break;
+			case 'C':
+				OptionArgs.calculate_CF = 1;
 				break;
 
 			//file
@@ -191,25 +198,27 @@ static void verify_OptionArgs(struct OptionArgs *OptionArgs) {
 	}
 }
 
-static void do_work_divide(struct OptionArgs *oa);
+static void do_work_divide_noscore(struct OptionArgs *oa);
+static void do_work_divide_score(struct OptionArgs *oa);
 static void do_work_merge(void);
 
 static void do_work(struct OptionArgs *oa) {
 	if (oa->total_filename != NULL) {
-		do_work_divide(oa);
+		do_work_divide_noscore(oa);
+		do_work_divide_score(oa);
 	}
 	else {
 		do_work_merge();
 	}
 }
 
-static void do_work_divide_mass(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct Metrics_Bip *result, struct User_ATT *ua, int L);
-static void do_work_divide_heat(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct Metrics_Bip *result, struct User_ATT *ua, int L);
-static void do_work_divide_hybrid(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, double hybrid_param, struct Metrics_Bip *result, struct User_ATT *ua, int L);
-static void do_work_divide_HNBI(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, double HNBI_param, struct Metrics_Bip *result, struct User_ATT *ua, int L);
-static void do_work_divide_RENBI(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, double RENBI_param, struct Metrics_Bip *result, struct User_ATT *ua, int L);
+static void do_work_divide_noscore_mass(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct Metrics_Bip *result, struct User_ATT *ua, int L);
+static void do_work_divide_noscore_heat(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct Metrics_Bip *result, struct User_ATT *ua, int L);
+static void do_work_divide_noscore_hybrid(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, double hybrid_param, struct Metrics_Bip *result, struct User_ATT *ua, int L);
+static void do_work_divide_noscore_HNBI(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, double HNBI_param, struct Metrics_Bip *result, struct User_ATT *ua, int L);
+static void do_work_divide_noscore_RENBI(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, double RENBI_param, struct Metrics_Bip *result, struct User_ATT *ua, int L);
 
-static void do_work_divide(struct OptionArgs *oa) {
+static void do_work_divide_noscore(struct OptionArgs *oa) {
 	struct Bip *ds1, *ds2, *tr1, *tr2, *te1, *te2;
 	struct LineFile *smlp, *bigp;
 	
@@ -273,19 +282,19 @@ static void do_work_divide(struct OptionArgs *oa) {
 		free_LineFile(simf);
 
 		if (oa->calculate_mass == 1) {
-			do_work_divide_mass(tr1, tr2, te1, te2, trsim, mass_result, &ua, oa->L);
+			do_work_divide_noscore_mass(tr1, tr2, te1, te2, trsim, mass_result, &ua, oa->L);
 		}
 		if (oa->calculate_heat == 1) {
-			do_work_divide_heat(tr1, tr2, te1, te2, trsim, heats_result, &ua, oa->L);
+			do_work_divide_noscore_heat(tr1, tr2, te1, te2, trsim, heats_result, &ua, oa->L);
 		}
 		if (oa->calculate_hybrid == 1) {
-			do_work_divide_hybrid(tr1, tr2, te1, te2, trsim, 0.2, hybrid_result, &ua, oa->L);
+			do_work_divide_noscore_hybrid(tr1, tr2, te1, te2, trsim, 0.2, hybrid_result, &ua, oa->L);
 		}
 		if (oa->calculate_HNBI == 1) {
-			do_work_divide_HNBI(tr1, tr2, te1, te2, trsim, -0.8, HNBI_result, &ua, oa->L);
+			do_work_divide_noscore_HNBI(tr1, tr2, te1, te2, trsim, -0.8, HNBI_result, &ua, oa->L);
 		}
 		if (oa->calculate_RENBI == 1) {
-			do_work_divide_RENBI(tr1, tr2, te1, te2, trsim, -0.75, RENBI_result, &ua, oa->L);
+			do_work_divide_noscore_RENBI(tr1, tr2, te1, te2, trsim, -0.75, RENBI_result, &ua, oa->L);
 		}
 
 		free_LineFile(smlp); 
@@ -348,32 +357,124 @@ static void metrics_add_add(struct Metrics_Bip *sum, struct Metrics_Bip *single)
 	}
 }
 
-static void do_work_divide_mass(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct Metrics_Bip *result, struct User_ATT *ua, int L) {
+static void do_work_divide_noscore_mass(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct Metrics_Bip *result, struct User_ATT *ua, int L) {
 	struct Metrics_Bip *mass_result = mass_Bip(tr1, tr2, te1, te2, trsim, ua, L);
 	metrics_add_add(result, mass_result);
 	free_MetricsBip(mass_result);
 }
 
-static void do_work_divide_heat(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct Metrics_Bip *result, struct User_ATT *ua, int L) {
+static void do_work_divide_noscore_heat(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct Metrics_Bip *result, struct User_ATT *ua, int L) {
 	struct Metrics_Bip *heats_result = heats_Bip(tr1, tr2, te1, te2, trsim, ua, L);
 	metrics_add_add(result, heats_result);
 	free_MetricsBip(heats_result);
 }
 
-static void do_work_divide_hybrid(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, double hybrid_param, struct Metrics_Bip *result, struct User_ATT *ua, int L) {
+static void do_work_divide_noscore_hybrid(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, double hybrid_param, struct Metrics_Bip *result, struct User_ATT *ua, int L) {
 	struct Metrics_Bip *hybrid_result = hybrid_Bip(tr1, tr2, te1, te2, trsim, hybrid_param, ua, L);
 	metrics_add_add(result, hybrid_result);
 	free_MetricsBip(hybrid_result);
 }
 
-static void do_work_divide_HNBI(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, double HNBI_param, struct Metrics_Bip *result, struct User_ATT *ua, int L) {
+static void do_work_divide_noscore_HNBI(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, double HNBI_param, struct Metrics_Bip *result, struct User_ATT *ua, int L) {
 	struct Metrics_Bip *HNBI_result = HNBI_Bip(tr1, tr2, te1, te2, trsim, HNBI_param, ua, L);
 	metrics_add_add(result, HNBI_result);
 	free_MetricsBip(HNBI_result);
 }
 
-static void do_work_divide_RENBI(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, double RENBI_param, struct Metrics_Bip *result, struct User_ATT *ua, int L) {
+static void do_work_divide_noscore_RENBI(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, double RENBI_param, struct Metrics_Bip *result, struct User_ATT *ua, int L) {
 	struct Metrics_Bip *RENBI_result = RENBI_Bip(tr1, tr2, te1, te2, trsim, RENBI_param, ua, L);
 	metrics_add_add(result, RENBI_result);
 	free_MetricsBip(RENBI_result);
+}
+
+
+static void do_work_divide_score_CF(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct Metrics_Bip *result, struct User_ATT *ua, int L);
+
+static void do_work_divide_score(struct OptionArgs *oa) {
+	struct Bip *ds1, *ds2, *tr1, *tr2, *te1, *te2;
+	struct LineFile *smlp, *bigp;
+	
+	struct LineFile *lf = create_LineFile(oa->total_filename, 1, 1, 1, -1);
+	ds1 = create_Bip(lf, 1);
+	ds2 = create_Bip(lf, 2);
+
+	struct LineFile *ulf = create_LineFile(oa->user_extra_att, 1, 1, 1, -1);
+	int *user_gender = malloc((ds1->maxId + 1) * sizeof(int));
+	int *user_age = malloc((ds1->maxId + 1) * sizeof(int));
+	int i;
+	for (i = 0; i < ds1->maxId + 1; ++i) {
+		user_gender[i] = -1;
+		user_age[i] = -1;
+	}
+	for (i = 0; i < ulf->linesNum; ++i) {
+		user_gender[ulf->i1[i]] = ulf->i2[i];
+		user_age[ulf->i1[i]] = ulf->i3[i];
+	}
+	free_LineFile(ulf);
+
+	struct User_ATT ua;
+	ua.gender = user_gender;
+	ua.age = user_age;
+
+	struct Metrics_Bip *CF_result = create_MetricsBip();
+
+	for (i = 0; i < oa->loopNum; ++i) {
+		divide_Bip(ds1, ds2, oa->dataset_divide_rate, &smlp, &bigp);
+		te1 = create_Bip(smlp, 1);
+		te2 = create_Bip(smlp, 2);
+		tr1 = create_Bip(bigp, 1);
+		tr2 = create_Bip(bigp, 2);
+
+		for (i = 0; i < CA_METRICS_BIP; ++i) {
+			ua.testset_node_num[i] = 0;	
+			ua.testset_edge_num[i] = 0;	
+		}
+
+		for (i = 0; i < te1->maxId + 1; ++i) {
+			if (te1->count[i]) {
+				(ua.testset_node_num[user_gender[i]]) ++;
+				ua.testset_edge_num[user_gender[i]] += te1->count[i];
+				(ua.testset_node_num[user_age[i]]) ++;
+				ua.testset_edge_num[user_age[i]] += te1->count[i];
+			}
+		}
+		ua.testset_node_num[0] = te1->idNum;
+		ua.testset_edge_num[0] = te1->edgesNum;
+		
+		for (i = 0; i < CA_METRICS_BIP; ++i) {
+			printf("%d, %d, %d\n", i, ua.testset_node_num[i], ua.testset_edge_num[i]);
+		}
+
+		struct LineFile *simf = similarity_Bip(tr1, tr2, 2);
+		struct iidNet *trsim = create_iidNet(simf);
+		free_LineFile(simf);
+
+		if (oa->calculate_CF == 1) {
+			do_work_divide_score_CF(tr1, tr2, te1, te2, trsim, CF_result, &ua, oa->L);
+		}
+
+		free_LineFile(smlp); 
+		free_LineFile(bigp);
+		free_Bip(tr1); free_Bip(tr2);
+		free_Bip(te1); free_Bip(te2);
+		free_iidNet(trsim);
+	}
+
+	int loopNum = oa->loopNum;
+	if (oa->calculate_CF == 1) {
+		for (i = 0; i < CA_METRICS_BIP; ++i) {
+			printf("\tCF_%d\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", i, loopNum, CF_result->R[i]/loopNum, CF_result->RL[i]/loopNum, CF_result->PL[i]/loopNum, CF_result->IL[i]/loopNum, CF_result->HL[i]/loopNum, CF_result->NL[i]/loopNum, CF_result->COV[i]/loopNum);
+		}
+	}
+
+	free(user_gender); free(user_age);
+	free_MetricsBip(CF_result);
+	free_Bip(ds1); free_Bip(ds2);
+	free_LineFile(lf); 
+}
+
+static void do_work_divide_score_CF(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct Metrics_Bip *result, struct User_ATT *ua, int L) {
+	struct Metrics_Bip *CF_result = CF_Bip(tr1, tr2, te1, te2, trsim, ua, L);
+	metrics_add_add(result, CF_result);
+	free_MetricsBip(CF_result);
 }

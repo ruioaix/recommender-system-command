@@ -506,6 +506,110 @@ struct LineFile *similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, int target
 	return simfile;
 }
 
+/*
+struct LineFile *pearson_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, int target) {
+	if (target != 1 && target != 2) isError("pearson_similarity_Bip target");
+	int idmax, idmax2;
+	long *count;
+	int **edges;
+	int **score;
+	if (target == 1) {
+		idmax = bipi1->maxId;
+		idmax2 = bipi2->maxId;
+		count = bipi1->count;
+		edges = bipi1->edges;
+		score = bipi1->score;
+	}
+	else {
+		idmax = bipi2->maxId;
+		idmax2 = bipi1->maxId;
+		count = bipi2->count;
+		edges = bipi2->edges;
+		score = bipi2->score;
+	}
+
+	int *sign = calloc((idmax2 + 1),sizeof(int));
+	assert(sign != NULL);
+
+	struct LineFile *simfile = create_LineFile(NULL);
+	assert(simfile != NULL);
+
+	int con = 1000000;
+	int *i1 = malloc(con*sizeof(int));
+	int *i2 = malloc(con*sizeof(int));
+	double *d1 = malloc(con*sizeof(double));
+
+	long linesNum = 0;
+
+	long k;
+	double soij;
+	int i,j;
+	for (i=0; i<idmax; ++i) {
+		if (count[i]) {
+			memset(sign, 0, (idmax2 + 1)*sizeof(int));
+			int sumx = 0, sumxsp = 0;
+			for (k=0; k<count[i]; ++k) {
+				sign[edges[i][k]] = score[i][k];
+				sumx += score[i][k];
+				sumxsp += score[i][k] * score[i][k];
+			}
+			//sumx, sumxsp != 0
+			for (j = i+1; j<idmax + 1; ++j) {
+				if (count[j]) {
+					//user i and user j.
+					int sumy = 0, sumysp = 0;
+					int sumxy = 0;
+					for (k=0; k<count[j]; ++k) {
+						sumy += score[j][k];
+						sumysp += score[j][k] * score[j][k];
+						sumxy += sign[edges[j][k]] * score[j][k];
+					}
+					//sumy, sumysp != 0
+					//sumxy maybe 0.
+					double fenzi = sumxy * (idmax2 + 1) - sumx * sumy;
+					double fenmu1 = sumxsp * (idmax2 + 1) - sumx * sumx;
+					double fenmu2 = sumysp * (idmax2 + 1) - sumy * sumy;;
+					double fenmu = sqrt(fenmu1) * sqrt(fenmu2);
+					if (fenmu < 0.0000001) iserror("femu 0.0000001");
+					if (Sij) {
+						soij = (double)Sij/pow(count[i] * count[j], 0.5);
+						//fprintf(fp, "%d, %d, %.17f\n", i, j, soij);
+						i1[linesNum] = i;
+						i2[linesNum] = j;
+						d1[linesNum] = soij;
+						++linesNum;
+						if (linesNum == con) {
+							con += 1000000;
+							int *temp = realloc(i1, con*sizeof(int));
+							assert(temp != NULL);
+							i1 = temp;
+							temp = realloc(i2, con*sizeof(int));
+							assert(temp != NULL);
+							i2 = temp;
+							double *tmp = realloc(d1, con*sizeof(double));
+							assert(tmp != NULL);
+							d1 = tmp;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	free(sign);
+
+	simfile->linesNum = linesNum;
+	simfile->i1 = i1;
+	simfile->i2 = i2;
+	simfile->d1 = d1;
+	set_filename_LineFile(simfile, simfilename[target]);
+	//simfile->filename = simfilename[target];	
+
+	printf("calculate %s done =>> linesNum: %ld.\n", simfile->filename, linesNum);
+	return simfile;
+}
+*/
+
 struct LineFile *mass_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2) {
 
 
@@ -1901,4 +2005,8 @@ double *mass_degree_rank_Bip(struct Bip *traini1, struct Bip *traini2, double ma
 	param.traini2 = traini2;
 
 	return rank_Bip(mass_degree_recommend_Bip, &param);
+}
+
+struct Metrics_Bip *CF_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainSim, struct User_ATT *ua, int L) {
+	return NULL;	
 }
