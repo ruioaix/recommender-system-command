@@ -562,21 +562,30 @@ struct LineFile *pearson_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, in
 							com++;
 							sumx += sign[edges[j][k]];
 							sumy += score[j][k];
-							sumxsp += sumx * sumx;
-							sumysp += sumy * sumy;
+							sumxsp += sign[edges[j][k]] * sign[edges[j][k]];
+							sumysp += score[j][k] * score[j][k];
 							sumxy += sign[edges[j][k]] * score[j][k];
 						}
 					}
 					if (com) {
+						//printf("sumx: %d\nsumy: %d\nsumxy: %d\n", sumx, sumy, sumxy);
+						//double fenzi = (double)sumxy * com - (double)sumx * sumy;
+						//double fenmu1 = (double)sumxsp * com - (double)sumx * sumx;
+						//double fenmu2 = (double)sumysp * com - (double)sumy * sumy;;
 						double fenzi = sumxy * com - sumx * sumy;
 						double fenmu1 = sumxsp * com - sumx * sumx;
 						double fenmu2 = sumysp * com - sumy * sumy;;
 						double fenmu = sqrt(fenmu1) * sqrt(fenmu2);
-						if (fenzi < 0) soij = 0;
-						else if (fenmu1 < 0.0000001 || fenmu2 < 0.0000001) iserror("femu 0.0000001");
+						if (fenzi < 1E-17) {
+							soij = 0;
+							//not need to do anything
+						}
+						else if (fenmu1 < 1E-17 || fenmu2 < 1E-17) {
+							isError("femu %.17f %.17f %.17f", fenzi, fenmu1, fenmu2);
+						}
 						else {
 							soij = fenzi/fenmu;
-							//fprintf(fp, "%d, %d, %.17f\n", i, j, soij);
+							//printf("%d, %d, %.17f\n", i, j, soij);
 							i1[linesNum] = i;
 							i2[linesNum] = j;
 							d1[linesNum] = soij;
@@ -767,6 +776,8 @@ struct Bip_recommend_param{
 	int testset_edge_num[CA_METRICS_BIP];
 
 	int L;
+	int K;
+	double *psimM;
 
 };
 
@@ -1236,6 +1247,59 @@ static void hybrid_recommend_Bip(struct Bip_recommend_param *args) {
 		}
 	}
 }
+
+static void CF_recommend_Bip(struct Bip_recommend_param *args) {
+
+	int i1 = args->i1;
+	double * i1source = args->i1source;
+	double *i2source = args->i2source;
+	int **i1ids = args->traini1->edges;
+	int **i2ids = args->traini2->edges;
+	int i1maxId = args->traini1->maxId;
+	int i2maxId = args->traini2->maxId;
+	long *i1count = args->traini1->count;
+	long *i2count = args->traini2->count;
+	int **i2score = args->traini2->score;
+
+	int *i1id = args->i1id;
+	int *i2id = args->i2id;
+
+	double *psimM = args->psimM;
+
+	int i, j, neigh;
+	long degree;
+	double source;
+	//one 
+	memset(i1source, 0, (i1maxId+1)*sizeof(double));
+	memset(i1id, 0, (i1maxId+1)*sizeof(int));
+	memset(i2source, 0, (i2maxId+1)*sizeof(double));
+
+	for (j=0; j<i2maxId+1; ++j) {
+		i2id[j] = 1;
+	}
+	for (j=0; j<i1count[i1]; ++j) {
+		i2id[i1ids[i1][j]] = 0;
+	}
+	
+	int k=0;
+	for (j=0; j<i2maxId+1; ++j) {
+		if (i2id[j] == 0) continue;
+		for (i = 0; i < i2count[j]; ++i) {
+			neigh = i2ids[j][i];
+			score = i2score[j][i];
+			i1source[k] = psimM[i1 * (i1maxId + 1) + neigh];
+			i1id[k] = score;
+			k++;
+		}
+		qsort_di_desc(i1source, 0, k-1, i1id);
+		for (i = 0; i < k && i < args->K; ++i) {
+			i2source[j] += i1source[i] * i1id[i];	
+			i1source[i] = 0;
+			i1id[i] = 0;
+		}
+	}
+}
+
 
 static void mass_topk_recommend_Bip(struct Bip_recommend_param *args) {
 
@@ -2010,6 +2074,27 @@ double *mass_degree_rank_Bip(struct Bip *traini1, struct Bip *traini2, double ma
 	return rank_Bip(mass_degree_recommend_Bip, &param);
 }
 
-struct Metrics_Bip *CF_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainSim, struct iidNet *ptrsim, struct User_ATT *ua, int L) {
+struct Metrics_Bip *CF_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, struct iidNet *ptrsim, double *psimM, struct User_ATT *ua, int L, int K) {
+	struct Bip_recommend_param param;
+	param.itemSim = itemSim;
+
+	param.traini1 = traini1;
+	param.traini2 = traini2;
+	param.testi1 = testi1;
+
+	param.user_gender = ua->gender;
+	param.user_age = ua->age;
+	int i;
+	for (i = 0; i < CA_METRICS_BIP; ++i) {
+		param.testset_node_num[i] = ua->testset_node_num[i];
+		param.testset_edge_num[i] = ua->testset_edge_num[i];
+	}
+
+	param.L = L;
+	param.K = K;
+
+	param.psimM = psimM;
+
+	return recommend_Bip(CF_recommend_Bip, &param);
 	return NULL;	
 }

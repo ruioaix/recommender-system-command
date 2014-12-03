@@ -25,6 +25,7 @@ struct OptionArgs {
 	double dataset_divide_rate;
 	int random_seed;
 	int L;
+	int K;
 
 	int random;
 };
@@ -46,6 +47,7 @@ static void display_usage(void) {
 	puts("-d: dataset divide rate(double)");
 	puts("-s: random seed");
 	puts("-L: L");
+	puts("-K: K");
 
 	puts("-?: help information");
 	exit(EXIT_FAILURE);
@@ -73,10 +75,11 @@ int main(int argc, char **argv) {
 	OptionArgs.dataset_divide_rate = 0.1;
 	OptionArgs.random_seed = 1;
 	OptionArgs.L = 50;
+	OptionArgs.K = 50;
 
 	OptionArgs.random = 0;
 
-	static const char *optString = "mhHNEi:T:t:l:u:d:s:L:C:?";
+	static const char *optString = "mhHNEi:T:t:l:u:d:s:L:CK:?";
 
 	struct option longOpts[] = {
 		{"mass", no_argument, NULL, 'm'},
@@ -95,6 +98,7 @@ int main(int argc, char **argv) {
 		{"dividerate", required_argument, NULL, 'd'},
 		{"random-seed", required_argument, NULL, 's'},
 		{"recmlistLength", required_argument, NULL, 'L'},
+		{"CFuserSimlistLength", required_argument, NULL, 'K'},
 		
 
 		{"help", no_argument, NULL, '?'}
@@ -157,6 +161,9 @@ int main(int argc, char **argv) {
 				break;
 			case 'L':
 				OptionArgs.L = strtol(optarg, NULL, 10);
+				break;
+			case 'K':
+				OptionArgs.K = strtol(optarg, NULL, 10);
 				break;
 
 			//help
@@ -388,7 +395,17 @@ static void do_work_divide_noscore_RENBI(struct Bip *tr1, struct Bip *tr2, struc
 }
 
 
-static void do_work_divide_score_CF(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct iidNet *ptrsim, struct Metrics_Bip *result, struct User_ATT *ua, int L);
+static void do_work_divide_score_CF(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct iidNet *ptrsim, struct Metrics_Bip *result, struct User_ATT *ua, int L, int K);
+
+static double *create_psimM(struct LineFile *simf, int maxId) {
+	double *psimM = smalloc((ds1->maxId + 1)*(ds1->maxId + 1) * sizeof(double));
+	int i;
+	for (i = 0; i < simf->linesNum; ++i) {
+		psimM[simf->i1[i] * (maxId + 1) + simf->i2[i]] = simf->d1[i];
+		psimM[simf->i2[i] * (maxId + 1) + simf->i1[i]] = simf->d1[i];
+	}
+	return psimM;
+}
 
 static void do_work_divide_score(struct OptionArgs *oa) {
 	struct Bip *ds1, *ds2, *tr1, *tr2, *te1, *te2;
@@ -450,11 +467,13 @@ static void do_work_divide_score(struct OptionArgs *oa) {
 		free_LineFile(simf);
 
 		simf = pearson_similarity_Bip(tr1, tr2, 1);
-		struct iidNet *ptrsim = create_iidNet(simf);
+		//struct iidNet *ptrsim = create_iidNet(simf);
+		struct iidNet *ptrsim = NULL;
+		double *psimM = create_psimM(simf);
 		free_LineFile(simf);
 
 		if (oa->calculate_CF == 1) {
-			do_work_divide_score_CF(tr1, tr2, te1, te2, trsim, ptrsim, CF_result, &ua, oa->L);
+			do_work_divide_score_CF(tr1, tr2, te1, te2, trsim, ptrsim, psimM, CF_result, &ua, oa->L, oa->K);
 		}
 
 		free_LineFile(smlp); 
@@ -477,8 +496,8 @@ static void do_work_divide_score(struct OptionArgs *oa) {
 	free_LineFile(lf); 
 }
 
-static void do_work_divide_score_CF(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct iidNet *ptrsim, struct Metrics_Bip *result, struct User_ATT *ua, int L) {
-	struct Metrics_Bip *CF_result = CF_Bip(tr1, tr2, te1, te2, trsim, ptrsim, ua, L);
+static void do_work_divide_score_CF(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct iidNet *ptrsim, double *psimM, struct Metrics_Bip *result, struct User_ATT *ua, int L, int K) {
+	struct Metrics_Bip *CF_result = CF_Bip(tr1, tr2, te1, te2, trsim, ptrsim, psimM, ua, L, K);
 	metrics_add_add(result, CF_result);
 	free_MetricsBip(CF_result);
 }
