@@ -270,11 +270,11 @@ static void do_work_divide_noscore(struct OptionArgs *oa) {
 		}
 
 		for (i = 0; i < te1->maxId + 1; ++i) {
-			if (te1->count[i]) {
+			if (te1->degree[i]) {
 				(ua.testset_node_num[user_gender[i]]) ++;
-				ua.testset_edge_num[user_gender[i]] += te1->count[i];
+				ua.testset_edge_num[user_gender[i]] += te1->degree[i];
 				(ua.testset_node_num[user_age[i]]) ++;
-				ua.testset_edge_num[user_age[i]] += te1->count[i];
+				ua.testset_edge_num[user_age[i]] += te1->degree[i];
 			}
 		}
 		ua.testset_node_num[0] = te1->idNum;
@@ -395,7 +395,7 @@ static void do_work_divide_noscore_RENBI(struct Bip *tr1, struct Bip *tr2, struc
 }
 
 
-static void do_work_divide_score_CF(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct iidNet *ptrsim, double *psimM, struct Metrics_Bip *result, struct User_ATT *ua, int L, int K);
+static void do_work_divide_score_CF(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trainItemSim, double *psimM, struct Metrics_Bip *result, struct User_ATT *ua, int L, int K);
 
 static double *create_psimM(struct LineFile *simf, int maxId) {
 	double *psimM = smalloc((maxId + 1)*(maxId + 1) * sizeof(double));
@@ -448,11 +448,11 @@ static void do_work_divide_score(struct OptionArgs *oa) {
 		}
 
 		for (i = 0; i < te1->maxId + 1; ++i) {
-			if (te1->count[i]) {
+			if (te1->degree[i]) {
 				(ua.testset_node_num[user_gender[i]]) ++;
-				ua.testset_edge_num[user_gender[i]] += te1->count[i];
+				ua.testset_edge_num[user_gender[i]] += te1->degree[i];
 				(ua.testset_node_num[user_age[i]]) ++;
-				ua.testset_edge_num[user_age[i]] += te1->count[i];
+				ua.testset_edge_num[user_age[i]] += te1->degree[i];
 			}
 		}
 		ua.testset_node_num[0] = te1->idNum;
@@ -467,13 +467,11 @@ static void do_work_divide_score(struct OptionArgs *oa) {
 		free_LineFile(simf);
 
 		simf = pearson_similarity_Bip(tr1, tr2, 1);
-		//struct iidNet *ptrsim = create_iidNet(simf);
-		struct iidNet *ptrsim = NULL;
 		double *psimM = create_psimM(simf, tr1->maxId);
 		free_LineFile(simf);
 
 		if (oa->calculate_CF == 1) {
-			do_work_divide_score_CF(tr1, tr2, te1, te2, trsim, ptrsim, psimM, CF_result, &ua, oa->L, oa->K);
+			do_work_divide_score_CF(tr1, tr2, te1, te2, trsim, psimM, CF_result, &ua, oa->L, oa->K);
 		}
 
 		free_LineFile(smlp); 
@@ -496,8 +494,8 @@ static void do_work_divide_score(struct OptionArgs *oa) {
 	free_LineFile(lf); 
 }
 
-static void do_work_divide_score_CF(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct iidNet *ptrsim, double *psimM, struct Metrics_Bip *result, struct User_ATT *ua, int L, int K) {
-	struct Metrics_Bip *CF_result = CF_Bip(tr1, tr2, te1, te2, trsim, ptrsim, psimM, ua, L, K);
+static void do_work_divide_score_CF(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, double *psimM, struct Metrics_Bip *result, struct User_ATT *ua, int L, int K) {
+	struct Metrics_Bip *CF_result = CF_Bip(tr1, tr2, te1, te2, trsim, psimM, ua, L, K);
 	metrics_add_add(result, CF_result);
 	free_MetricsBip(CF_result);
 }
