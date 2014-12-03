@@ -1267,15 +1267,14 @@ static void CF_recommend_Bip(struct Bip_recommend_param *args) {
 	double *psimM = args->psimM;
 
 	int i, j, neigh;
-	long degree;
-	double source;
-	//one 
-	memset(i1source, 0, (i1maxId+1)*sizeof(double));
-	memset(i1id, 0, (i1maxId+1)*sizeof(int));
-	memset(i2source, 0, (i2maxId+1)*sizeof(double));
 
+	for (j = 0; j < i1maxId + 1; ++j) {
+		i1id[j] = 0;	
+		i1source[j] = 0;
+	}
 	for (j=0; j<i2maxId+1; ++j) {
 		i2id[j] = 1;
+		i2source[j] = 0;
 	}
 	for (j=0; j<i1count[i1]; ++j) {
 		i2id[i1ids[i1][j]] = 0;
@@ -1283,10 +1282,15 @@ static void CF_recommend_Bip(struct Bip_recommend_param *args) {
 	
 	int k=0;
 	for (j=0; j<i2maxId+1; ++j) {
+		//j is item
 		if (i2id[j] == 0) continue;
+		//now j is the item which user i1 hasn't choosen.
+		k=0;
 		for (i = 0; i < i2count[j]; ++i) {
+			//neigh is user
 			neigh = i2ids[j][i];
-			score = i2score[j][i];
+			//neigh give score to j.
+			int score = i2score[j][i];
 			i1source[k] = psimM[i1 * (i1maxId + 1) + neigh];
 			i1id[k] = score;
 			k++;

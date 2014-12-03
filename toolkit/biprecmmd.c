@@ -395,10 +395,10 @@ static void do_work_divide_noscore_RENBI(struct Bip *tr1, struct Bip *tr2, struc
 }
 
 
-static void do_work_divide_score_CF(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct iidNet *ptrsim, struct Metrics_Bip *result, struct User_ATT *ua, int L, int K);
+static void do_work_divide_score_CF(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct iidNet *ptrsim, double *psimM, struct Metrics_Bip *result, struct User_ATT *ua, int L, int K);
 
 static double *create_psimM(struct LineFile *simf, int maxId) {
-	double *psimM = smalloc((ds1->maxId + 1)*(ds1->maxId + 1) * sizeof(double));
+	double *psimM = smalloc((maxId + 1)*(maxId + 1) * sizeof(double));
 	int i;
 	for (i = 0; i < simf->linesNum; ++i) {
 		psimM[simf->i1[i] * (maxId + 1) + simf->i2[i]] = simf->d1[i];
@@ -469,7 +469,7 @@ static void do_work_divide_score(struct OptionArgs *oa) {
 		simf = pearson_similarity_Bip(tr1, tr2, 1);
 		//struct iidNet *ptrsim = create_iidNet(simf);
 		struct iidNet *ptrsim = NULL;
-		double *psimM = create_psimM(simf);
+		double *psimM = create_psimM(simf, tr1->maxId);
 		free_LineFile(simf);
 
 		if (oa->calculate_CF == 1) {
