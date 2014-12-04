@@ -9,6 +9,9 @@
 #include <stdio.h>
 #include <limits.h>
 
+/*********************************************************************/
+/***operation on struct Bip*******************************************/
+/*********************************************************************/
 static void set_maxId_minId_create_Bip(int *i1, int *i2, long edgesNum, int index, int *maxId, int *minId) {
 	//set minId&maxId.
 	long i;
@@ -384,6 +387,8 @@ void divide_Bip(struct Bip *bipi1, struct Bip *bipi2, double rate, struct LineFi
 }
 
 /*********************************************************************/
+/**all kinds of similarity********************************************/
+/*********************************************************************/
 #define SIMFILESTEP 1000000
 //if target == 1, then calculate i1(mostly user)'s similarity.
 //if target == 2, then calculate i2(mostly item)'s similarity.
@@ -570,6 +575,8 @@ struct LineFile *pearson_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, in
 }
 
 /*********************************************************************/
+/***Operation on struct Metrics_Bip***********************************/
+/*********************************************************************/
 struct Metrics_Bip *create_MetricsBip(void) {
 	struct Metrics_Bip *lp = smalloc(sizeof(struct Metrics_Bip));
 
@@ -612,6 +619,9 @@ void free_MetricsBip(struct Metrics_Bip *lp) {
 	free(lp);
 }
 
+/*********************************************************************/
+/**the special struct only used in recommend_Bip**********************/
+/*********************************************************************/
 struct Bip_recommend_param{
 	int i1;
 
@@ -652,6 +662,9 @@ struct Bip_recommend_param{
 	double *psimM;
 };
 
+/*********************************************************************/
+/**metrics calculation functions**************************************/
+/*********************************************************************/
 //following is for recommendation.
 //R is rankscore.
 //PL is precision
@@ -797,6 +810,9 @@ static void metrics_NL_Bip(int i1maxId, int *i1degree, int i1idNum, int *i2degre
 	}
 }
 
+/*********************************************************************/
+/**after recommend_core, do this common function.*********************/
+/*********************************************************************/
 static inline void Bip_core_common_part(struct Bip_recommend_param *args, int *i2id, int *rank, int *topL_i1L, int L) {
 	
 	int uid = args->i1;
@@ -823,6 +839,7 @@ static inline void Bip_core_common_part(struct Bip_recommend_param *args, int *i
 		}
 
 		if (i2source[i] > 0 ) {
+			//valid i2source and i2id will be in the front i positions of the array.
 			dtmp = i2source[j];
 			i2source[j] = i2source[i];
 			i2source[i] = dtmp;
@@ -831,11 +848,10 @@ static inline void Bip_core_common_part(struct Bip_recommend_param *args, int *i
 			i2id[j] = i;
 
 			++j;
-			
 		}
 	}
 	//to this step, i2source contains four parts: 
-	//1, nomral i2source[x] , which <0, 1].
+	//1, nomral i2source[x] , which (0, 1].
 	//2, i2source[x] = 0, which x isn't selected by anyone has similarity.
 	//3, i2source[x] = -1, which x has been selected by i1.
 	//4, i2source[x] = -2, which x is the hole, x isn't selected by anyone.
@@ -852,7 +868,12 @@ static inline void Bip_core_common_part(struct Bip_recommend_param *args, int *i
 	}
 }
 
+
+/*********************************************************************/
+/***all kinds of recommend_core functions.****************************/
+/*********************************************************************/
 //three-step random walk of Probs
+//return i2source
 static void mass_recommend_Bip(struct Bip_recommend_param *args) {
 
 	int i1 = args->i1;
@@ -902,6 +923,7 @@ static void mass_recommend_Bip(struct Bip_recommend_param *args) {
 }
 
 //three-step random walk of heats
+//return i2source
 static void heats_recommend_Bip(struct Bip_recommend_param *args) {
 	int i1 = args->i1;
 	double * i1source = args->i1source;
@@ -943,6 +965,7 @@ static void heats_recommend_Bip(struct Bip_recommend_param *args) {
 }
 
 //three-step random walk of HNBI
+//return i2source
 static void HNBI_recommend_Bip(struct Bip_recommend_param *args) {
 	int i1 = args->i1;
 	double HNBI_param = args->HNBI_param;
@@ -989,6 +1012,7 @@ static void HNBI_recommend_Bip(struct Bip_recommend_param *args) {
 }
 
 //five-step random walk of RENBI
+//return i2source
 static void RENBI_recommend_Bip(struct Bip_recommend_param *args) {
 	int i1 = args->i1;
 	double RENBI_param = args->RENBI_param;
@@ -1072,6 +1096,7 @@ static void RENBI_recommend_Bip(struct Bip_recommend_param *args) {
 }
 
 //three-step random walk of hybrid
+//return i2source
 static void hybrid_recommend_Bip(struct Bip_recommend_param *args) {
 	int i1 = args->i1;
 	double hybrid_param = args->hybrid_param;
@@ -1119,6 +1144,8 @@ static void hybrid_recommend_Bip(struct Bip_recommend_param *args) {
 	}
 }
 
+//CF
+//return i2source
 static void CF_recommend_Bip(struct Bip_recommend_param *args) {
 
 	int i1 = args->i1;
@@ -1176,7 +1203,8 @@ static void CF_recommend_Bip(struct Bip_recommend_param *args) {
 	}
 }
 
-
+//mass topk
+//return i2source
 static void mass_topk_recommend_Bip(struct Bip_recommend_param *args) {
 
 	int i1 = args->i1;
@@ -1230,6 +1258,8 @@ static void mass_topk_recommend_Bip(struct Bip_recommend_param *args) {
 	}
 }
 
+//mass hs
+//return i2source
 static void mass_hs_recommend_Bip(struct Bip_recommend_param *args) {
 
 	int i1 = args->i1;
@@ -1286,6 +1316,8 @@ static void mass_hs_recommend_Bip(struct Bip_recommend_param *args) {
 	}
 }
 
+//mass score
+//return i2source
 static void mass_score_recommend_Bip(struct Bip_recommend_param *args) {
 	int i1 = args->i1;
 	double *i1source = args->i1source;
@@ -1366,6 +1398,8 @@ static void mass_score_recommend_Bip(struct Bip_recommend_param *args) {
 	}
 }
 
+//mass score 3 step
+//return i2source
 static void mass_scoret3step_recommend_Bip(struct Bip_recommend_param *args) {
 	int i1 = args->i1;
 	double * i1source = args->i1source;
@@ -1427,6 +1461,8 @@ static void mass_scoret3step_recommend_Bip(struct Bip_recommend_param *args) {
 	}
 }
 
+//mass degree
+//return i2source
 static void mass_degree_recommend_Bip(struct Bip_recommend_param *args) {
 	int i1 = args->i1;
 	double * i1source = args->i1source;
@@ -1491,37 +1527,49 @@ static void mass_degree_recommend_Bip(struct Bip_recommend_param *args) {
 /** 
  * core function of recommendation.
  * type :
- *   -- mass (NONE arg)
- *   -- heats (NONE arg)
- *   -- HNBI  (double HNBI_param)
- *   -- RENBI  (RENBI_param)
- *   -- hybrid (hybrid_param)
- *   -- topk 
- *   -- hs
- *
- * all L is from this function. if you want to change, change the L below.
+ *   -- mass
+ *   -- heats
+ *   -- HNBI
+ *   -- RENBI
+ *   -- hybrid
+ *   -- CF
+ *   -- mass topk 
+ *   -- mass hs
+ *   -- mass score
+ *   -- mass score 3 step
+ *   -- mass degree
  */
 static struct Metrics_Bip *recommend_Bip(void (*recommend_core)(struct Bip_recommend_param *), struct Bip_recommend_param *args) {
-
+	//param from args.
 	int i1maxId      = args->traini1->maxId;
 	int i2maxId      = args->traini2->maxId;
 	int i1idNum      = args->traini1->idNum;
-	//int i2idNum      = args->traini2->idNum;
 	int *i1degree    = args->traini1->degree;
 	int *i2degree    = args->traini2->degree;
-
 	int *user_gender = args->user_gender;
 	int *user_age = args->user_age;
-
-	int i;
-
 	struct iidNet *itemSim = args->itemSim;
-
- 	// all L is from this function. if you want to change, change the L below.
 	int L = args->L;
 
-	struct Metrics_Bip *retn = create_MetricsBip();
+	//param from here, will be given to args.
+	double *i1source = smalloc((i1maxId + 1)*sizeof(double));
+	double *i2source = smalloc((i2maxId + 1)*sizeof(double));
+	double *i1sourceA = smalloc((i1maxId + 1)*sizeof(double));
+	double *i2sourceA = smalloc((i2maxId + 1)*sizeof(double));
+	int *i1id = smalloc((i1maxId + 1)*sizeof(int));
+	int *i2id = smalloc((i2maxId + 1)*sizeof(int));
+	args->i1source = i1source;
+	args->i2source = i2source;
+	args->i1sourceA = i1sourceA;
+	args->i2sourceA = i2sourceA;
+	args->i1id = i1id;
+	args->i2id = i2id;
 
+	//the result
+	struct Metrics_Bip *retn = create_MetricsBip();
+	retn->L = L;
+	int *topL = scalloc(L*(i1maxId + 1), sizeof(int));
+	retn->topL = topL;
 	double *R, *RL, *PL, *HL, *IL, *NL, *COV;
 	R=retn->R;
 	RL=retn->RL;
@@ -1531,49 +1579,21 @@ static struct Metrics_Bip *recommend_Bip(void (*recommend_core)(struct Bip_recom
 	NL=retn->NL;
 	COV=retn->COV;
 
-	double *i1source = malloc((i1maxId + 1)*sizeof(double));
-	assert(i1source != NULL);
-	double *i2source = malloc((i2maxId + 1)*sizeof(double));
-	assert(i2source != NULL);
-	args->i1source = i1source;
-	args->i2source = i2source;
+	//only use in this function.
+	int *rank = smalloc((i2maxId + 1)*sizeof(int));
 
-	double *i2sourceA = malloc((i2maxId + 1)*sizeof(double));
-	assert(i2sourceA != NULL);
-	args->i2sourceA = i2sourceA;
-	double *i1sourceA = malloc((i1maxId + 1)*sizeof(double));
-	assert(i1sourceA != NULL);
-	args->i1sourceA = i1sourceA;
-
-	int *rank = malloc((i2maxId + 1)*sizeof(int));
-	assert(rank != NULL);
-	int *i1id =  malloc((i1maxId + 1)*sizeof(int));
-	assert(i1id != NULL);
-	int *i2id =  malloc((i2maxId + 1)*sizeof(int));
-	assert(i2id != NULL);
-	args->i1id = i1id;
-	args->i2id = i2id;
-
-	int *topL = calloc(L*(i1maxId + 1), sizeof(int));
-	assert(topL != NULL);
-
-	for (i = 0; i<i1maxId + 1; ++i) { //each user
-		//if (i%1000 ==0) {printf("%d\n", i);fflush(stdout);}
-		//only compute the i in both i1 and test.
-		if (i1degree[i]) {
-			//get rank
+	int i;
+	for (i = 0; i<i1maxId + 1; ++i) {
+		if (i1degree[i]) {//each valid user in trainset.
 			args->i1 = i;
+			//get i2source
 			recommend_core(args);
+			//use i2source, get i2id & rank & topL
 			Bip_core_common_part(args, i2id, rank, topL + i*L, L);
 			metrics_R_RL_PL_Bip(i, i1degree, i2maxId/*i2idNum*/, args->testi1, L, rank, user_gender, user_age, R, RL, PL);
 		}
-		//printf("%d\t", i);fflush(stdout);
 	}
-	print_time();
-
-	//R /= args->testi1->edgesNum;
-	//RL /= args->testi1->idNum;
-	//PL /= args->testi1->idNum;
+	//print_time();
 
 	metrics_HL_COV_Bip(i1maxId, i1degree, i2maxId, L, topL, user_gender, user_age, HL, COV);
 	metrics_IL_Bip(i1maxId, i1degree, i1idNum, i2maxId, L, topL, itemSim, user_gender, user_age, IL);
@@ -1588,17 +1608,10 @@ static struct Metrics_Bip *recommend_Bip(void (*recommend_core)(struct Bip_recom
 		retn->NL[i] = NL[i] / args->testset_node_num[i];
 		retn->COV[i] = COV[i];
 	}
-	retn->topL = topL;
-	retn->L = L;
 
-
-	//printf("hybrid:\tR: %f, PL: %f, IL: %f, HL: %f, NL: %f\n", R, PL, IL, HL, NL);
-	free(i1source);
-	free(i2source);
-	free(i1sourceA);
-	free(i2sourceA);
-	free(i1id);
-	free(i2id);
+	free(i1source); free(i2source);
+	free(i1sourceA); free(i2sourceA);
+	free(i1id); free(i2id);
 	free(rank);
 	return retn;
 }
