@@ -1251,6 +1251,7 @@ static void hybrid_recommend_Bip(struct Bip_recommend_param *args) {
 static void CF_recommend_Bip(struct Bip_recommend_param *args) {
 
 	int i1 = args->i1;
+	printf("%d\t", i1); fflush(stdout);
 	double * i1source = args->i1source;
 	double *i2source = args->i2source;
 	int **i1ids = args->traini1->edges;
@@ -1697,6 +1698,7 @@ static struct Metrics_Bip *recommend_Bip(void (*recommend_core)(struct Bip_recom
 		}
 		//printf("%d\t", i);fflush(stdout);
 	}
+	print_time();
 
 	//R /= args->testi1->edgesNum;
 	//RL /= args->testi1->idNum;
@@ -2079,6 +2081,7 @@ double *mass_degree_rank_Bip(struct Bip *traini1, struct Bip *traini2, double ma
 }
 
 struct Metrics_Bip *CF_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, struct iidNet *ptrsim, double *psimM, struct User_ATT *ua, int L, int K) {
+	print_time();
 	struct Bip_recommend_param param;
 	param.itemSim = itemSim;
 

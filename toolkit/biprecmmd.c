@@ -211,8 +211,12 @@ static void do_work_merge(void);
 
 static void do_work(struct OptionArgs *oa) {
 	if (oa->total_filename != NULL) {
-		do_work_divide_noscore(oa);
-		do_work_divide_score(oa);
+		if (oa->calculate_CF) {
+			do_work_divide_score(oa);
+		}
+		else {
+			do_work_divide_noscore(oa);
+		}
 	}
 	else {
 		do_work_merge();
