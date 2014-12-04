@@ -45,7 +45,7 @@ struct Bip {
 //i1 and i2 is the data in LineFile.
 //if index is 2, means i2 is the index.
 struct Bip *create_Bip(const struct LineFile * const file, int index);
-void sort_desc_Bip(struct Bip *bip);
+void sort_desc_by_edges_Bip(struct Bip *bip);
 void free_Bip(struct Bip *bip);
 struct Bip * clone_Bip(struct Bip *bip);
 void verify_Bip(struct Bip *bipi1, struct Bip *bipi2);
@@ -57,10 +57,10 @@ void print_Bip(struct Bip *bip, char *filename);
 //so maybe some users/items are not existed in the small part.
 void divide_Bip(struct Bip *bipi1, struct Bip *bipi2, double rate, struct LineFile **small_part, struct LineFile **big_part);
 
+//similarity
 //if target == 1, then calculate i1(mostly could be user)'s similarity.
 //if target == 2, then calculate i2(mostly could be item)'s similarity.
-struct LineFile *similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, int target);
-struct LineFile *mass_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2);
+struct LineFile *cosine_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, int target);
 struct LineFile *pearson_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, int target);
 
 #define CA_METRICS_BIP 10 

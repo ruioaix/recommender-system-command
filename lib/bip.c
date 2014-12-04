@@ -1,6 +1,3 @@
-/**
- *
- */
 #include "bip.h"
 #include "base.h"
 #include "mtprand.h"
@@ -31,42 +28,9 @@ static void set_maxId_minId_create_Bip(int *i1, int *i2, long edgesNum, int inde
 	}
 }
 
-//kind of simple, just create struct Bip.
-//index is 1, i1 of struct LineFile will be the index.
-//index is 2, i2 of struct LineFile will be the index.
-struct Bip *create_Bip(const struct LineFile * const lf, int index) {
-	if (lf == NULL || lf->i1 == NULL || lf->i2 == NULL || lf->linesNum < 1) isError("create_Bip lf");
-	if (index != 1 && index != 2) isError("create_Bip index");
-
-	//all elements of struct Bip.
-	int maxId;
-	int minId;
-	int idNum = 0;
-	long edgesNum = lf->linesNum;
-	int degreeMax=-1;
-	int degreeMin=INT_MAX;
-	int *degree;
-	int **edges;
-	int **score = NULL;
-
-	//get data
-	int *i1 = lf->i1;
-	int *i2 = lf->i2;
-	int *i3 = lf->i3;
-
-	set_maxId_minId_create_Bip(i1, i2, edgesNum, index, &maxId, &minId);
-	long i;
-
-	//once get maxId, the four points can be assigned with memory.
-	//
-	degree = scalloc(maxId+1, sizeof(int));
-	edges = smalloc((maxId+1)*sizeof(void *));
-	if (lf->i3 != NULL) {
-		score = malloc((maxId+1)*sizeof(void *));
-		assert(score != NULL);
-	}
-
-	//fill the degree.
+static int *set_degree_create_Bip(int *i1, int *i2, int maxId, long edgesNum, int index) {
+	int *degree = scalloc(maxId+1, sizeof(int));
+	int i;
 	if (1 == index) {
 		for(i=0; i<edgesNum; ++i) {
 			++degree[i1[i]];
@@ -77,97 +41,114 @@ struct Bip *create_Bip(const struct LineFile * const lf, int index) {
 			++degree[i2[i]];
 		}
 	}
+	return degree;
+}
 
-	//once get degree, the three points which point to point can be assigned with memory.
+static void prepare_edges_attr_and_set_degreeMaxMin_idNum_create_Bip(int *i3, int maxId, int *degree, int *idNum_retn, int *degreeMax_retn, int *degreeMin_retn, int ***edges_retn, int ***score_retn) {
+	int **edges = smalloc((maxId+1)*sizeof(void *));
+	int **score = NULL;
+	int degreeMax = -1;
+	int degreeMin = INT_MAX;
+	int idNum = 0;
+	
+	if (i3 != NULL) {
+		score = smalloc((maxId+1)*sizeof(void *));
+	}
 	int j;
 	for(j=0; j<maxId+1; ++j) {
 		if (degree[j]>0) {
 			degreeMax = degreeMax>degree[j]?degreeMax:degree[j];
 			degreeMin = degreeMin<degree[j]?degreeMin:degree[j];
 			++idNum;
-			edges[j]=malloc(degree[j]*sizeof(int));
-			assert(edges[j]!=NULL);
+			edges[j]=smalloc(degree[j]*sizeof(int));
 		}
 		else {
 			edges[j] = NULL;
 		}
 	}
-	if (lf->i3 != NULL) {
+	if (i3 != NULL) {
 		for(j=0; j<maxId+1; ++j) {
 			if (degree[j]>0) {
-				score[j]=malloc(degree[j]*sizeof(int));
-				assert(score[j]!=NULL);
+				score[j]=smalloc(degree[j]*sizeof(int));
 			}
 			else {
 				score[j] = NULL;
 			}
 		}
 	}
+	*degreeMax_retn = degreeMax;
+	*degreeMin_retn = degreeMin;
+	*edges_retn = edges;
+	*score_retn = score;
+	*idNum_retn = idNum;
+}
 
+static void set_edges_attr_create_Bip(int *i1, int *i2, int *i3, int maxId, int index, long edgesNum, int ***edges, int ***score) {
 	//fill edges
-	int *temp = calloc(maxId+1, sizeof(int));
-	assert(temp!=NULL);
+	
+	long i;
+	int *temp = scalloc(maxId+1, sizeof(int));
 	if (1 == index) {
-		if (lf->i3 != NULL) {
+		if (i3 != NULL) {
 			for(i=0; i<edgesNum; ++i) {
 				int ii1 =i1[i];
-				edges[ii1][temp[ii1]]=i2[i];
-				score[ii1][temp[ii1]] = i3[i];
+				(*edges)[ii1][temp[ii1]]=i2[i];
+				(*score)[ii1][temp[ii1]] = i3[i];
 				++temp[ii1];
 			}
 		}
 		else {
 			for(i=0; i<edgesNum; ++i) {
 				int ii1 =i1[i];
-				edges[ii1][temp[ii1]]=i2[i];
+				(*edges)[ii1][temp[ii1]]=i2[i];
 				++temp[ii1];
 			}
 		}
 	}
 	else {
-		if (lf->i3 != NULL) {
+		if (i3 != NULL) {
 			for(i=0; i<edgesNum; ++i) {
 				int ii2 =i2[i];
-				edges[ii2][temp[ii2]]=i1[i];
-				score[ii2][temp[ii2]] = i3[i];
+				(*edges)[ii2][temp[ii2]]=i1[i];
+				(*score)[ii2][temp[ii2]] = i3[i];
 				++temp[ii2];
 			}
 		}
 		else {
 			for(i=0; i<edgesNum; ++i) {
 				int ii2 =i2[i];
-				edges[ii2][temp[ii2]]=i1[i];
+				(*edges)[ii2][temp[ii2]]=i1[i];
 				++temp[ii2];
 			}
 		}
 	}
 	free(temp);
+}
 
-	//fill Bip and return.
-	struct Bip *Bip = malloc(sizeof(struct Bip));
-	assert(Bip != NULL);
+//kind of simple, just create struct Bip.
+//index is 1, i1 of struct LineFile will be the index.
+//index is 2, i2 of struct LineFile will be the index.
+struct Bip *create_Bip(const struct LineFile * const lf, int index) {
+	if (lf == NULL || lf->i1 == NULL || lf->i2 == NULL || lf->linesNum < 1) isError("create_Bip lf");
+	if (index != 1 && index != 2) isError("create_Bip index");
+	int *i1 = lf->i1;
+	int *i2 = lf->i2;
+	int *i3 = lf->i3;
 
-	Bip->maxId=maxId;
-	Bip->minId=minId;
-	Bip->idNum=idNum;
-	Bip->degreeMax = degreeMax;
-	Bip->degreeMin = degreeMin;
-	Bip->degree=degree;
-	Bip->edges= edges;
-	Bip->score = score;
-	Bip->edgesNum=edgesNum;
+	struct Bip *Bip = smalloc(sizeof(struct Bip));
+	Bip->edgesNum = lf->linesNum;
+	set_maxId_minId_create_Bip(i1, i2, lf->linesNum, index, &(Bip->maxId), &(Bip->minId));
+	Bip->degree = set_degree_create_Bip(i1, i2, Bip->maxId, lf->linesNum, index);
+	prepare_edges_attr_and_set_degreeMaxMin_idNum_create_Bip(i3, Bip->maxId, Bip->degree, &(Bip->idNum), &(Bip->degreeMax), &(Bip->degreeMin), &(Bip->edges), &(Bip->score));
+	set_edges_attr_create_Bip(i1, i2, i3, Bip->maxId, index, lf->linesNum, &(Bip->edges), &(Bip->score));	
 
-	if (index == 1) {
-		printf("create i1 bip from %s =>> Max: %5d, Min: %5d, Num: %5d, degreeMax: %5d, degreeMin: %5d, edgesNum: %5ld\n", lf->filename, maxId, minId, idNum, degreeMax, degreeMin, edgesNum); fflush(stdout);
-	}
-	else {
-		printf("create i2 bip from %s =>> Max: %5d, Min: %5d, Num: %5d, degreeMax: %5d, degreeMin: %5d, edgesNum: %5ld\n", lf->filename, maxId, minId, idNum, degreeMax, degreeMin, edgesNum); fflush(stdout);
-	}
+	printgf("file:%s, index:%d, Max: %5d, Min: %5d, Num: %5d, degreeMax: %5d, degreeMin: %5d, edgesNum: %5ld", \
+			lf->filename, index, Bip->maxId, Bip->minId, Bip->idNum, Bip->degreeMax, Bip->degreeMin, Bip->edgesNum);
 
 	return Bip;
 }
 
-void sort_desc_Bip(struct Bip *bip) {
+void sort_desc_by_edges_Bip(struct Bip *bip) {
 	int i;
 	if (bip->score != NULL) {
 		for (i = 0; i < bip->maxId + 1; ++i) {
@@ -183,6 +164,7 @@ void sort_desc_Bip(struct Bip *bip) {
 			}
 		}
 	}
+	printgf("done.");
 }
 
 void free_Bip(struct Bip *bip) {
@@ -197,27 +179,22 @@ void free_Bip(struct Bip *bip) {
 	free(bip->edges);
 	free(bip->score);
 	free(bip);
+	printgf("done.");
 }
 
 struct Bip * clone_Bip(struct Bip *bip) {
-	struct Bip *new = malloc(sizeof(struct Bip));
-	assert(new != NULL);
-	new->degree = malloc((bip->maxId + 1)*sizeof(int));
-	assert(new->degree != NULL);
+	struct Bip *new = smalloc(sizeof(struct Bip));
+	new->degree = smalloc((bip->maxId + 1)*sizeof(int));
 	memcpy(new->degree, bip->degree, (bip->maxId + 1)*sizeof(int));
-	new->edges = malloc((bip->maxId + 1)*sizeof(void *));
-	assert(new->edges != NULL);
+	new->edges = smalloc((bip->maxId + 1)*sizeof(void *));
 	int i;
 	if (bip->score != NULL) {
-		new->score = malloc((bip->maxId + 1)*sizeof(void *));
-		assert(new->score != NULL);
-		for (i=0; i<bip->maxId +1 ; ++i) {
+		new->score = smalloc((bip->maxId + 1)*sizeof(void *));
+		for (i = 0; i < bip->maxId + 1; ++i) {
 			if (new->degree[i]) {
-				new->edges[i] = malloc(new->degree[i]*sizeof(int));
-				assert(new->edges[i] != NULL);
+				new->edges[i] = smalloc(new->degree[i]*sizeof(int));
 				memcpy(new->edges[i], bip->edges[i], new->degree[i]*sizeof(int));
-				new->score[i] = malloc(new->degree[i]*sizeof(int));
-				assert(new->score[i] != NULL);
+				new->score[i] = smalloc(new->degree[i]*sizeof(int));
 				memcpy(new->score[i], bip->score[i], new->degree[i]*sizeof(int));
 			}
 			else {
@@ -230,8 +207,7 @@ struct Bip * clone_Bip(struct Bip *bip) {
 		new->score = NULL;
 		for (i=0; i<bip->maxId +1 ; ++i) {
 			if (new->degree[i]) {
-				new->edges[i] = malloc(new->degree[i]*sizeof(int));
-				assert(new->edges[i] != NULL);
+				new->edges[i] = smalloc(new->degree[i]*sizeof(int));
 				memcpy(new->edges[i], bip->edges[i], new->degree[i]*sizeof(int));
 			}
 			else {
@@ -243,9 +219,10 @@ struct Bip * clone_Bip(struct Bip *bip) {
 	new->maxId = bip->maxId;
 	new->minId = bip->minId;
 	new->idNum = bip->idNum;
+	new->edgesNum = bip->edgesNum;
 	new->degreeMax = bip->degreeMax;
 	new->degreeMin = bip->degreeMin;
-	new->edgesNum = bip->edgesNum;
+	printgf("done.");
 
 	return new;
 }
@@ -253,12 +230,11 @@ struct Bip * clone_Bip(struct Bip *bip) {
 void verify_Bip(struct Bip *bipi1, struct Bip *bipi2) {
 	int i;
 	int j,k;
-	int *place = malloc((bipi2->maxId+1)*sizeof(int));
-	assert(place != NULL);
+	int *place = smalloc((bipi2->maxId+1)*sizeof(int));
 	FILE *fp = sfopen("data/duplicatePairsinNet", "w");
 	FILE *fp2 = sfopen("data/NoDuplicatePairsNetFile", "w");
 	fprintf(fp, "the following pairs are duplicate in the net file\n");
-	char sign=0;
+	int sign=0;
 	for (j=0; j<bipi1->maxId+1; ++j) {
 		if (bipi1->degree[j]>0) {
 			for (k=0; k<bipi2->maxId + 1; ++k) {
@@ -269,17 +245,13 @@ void verify_Bip(struct Bip *bipi1, struct Bip *bipi2) {
 				int next = place[origin];
 				if (next == -1) {
 					place[origin]=origin;
-					fprintf(fp2, "%d\t%d\n", j,origin);
+					fprintf(fp2, "%d\t%d\n", j, origin);
 				}
 				else {
 					fprintf(fp, "%d\t%d\n", j, next);
 					sign=1;
 				}
 			}
-		}
-		if (j%10000 == 0) {
-			printf("%d\n", j);
-			fflush(stdout);
 		}
 	}
 	free(place);
@@ -288,9 +260,7 @@ void verify_Bip(struct Bip *bipi1, struct Bip *bipi2) {
 	if (sign == 1) {
 		isError("the file has duplicate pairs, you can check data/duplicatePairsinNet.\nwe generate a net file named data/NoDuplicatePairsNetFile which doesn't contain any duplicate pairsr.\nyou should use this file instead the origin wrong one.\n");
 	}
-	else {
-		printf("verifyBip: perfect network.\n");
-	}
+	printgf("perfect network.\n");
 }
 
 void print_Bip(struct Bip *bip, char *filename) {
@@ -309,22 +279,23 @@ void print_Bip(struct Bip *bip, char *filename) {
 		}
 	}
 	fclose(fp);
+	printgf("print %s done.\n", filename);
 }
 
 //divide Bip into two parts.
 //return two struct LineFile. 
 //the first one is always the small one.
 //the second is always the large one.
-static char *divfilename[2] = {"trainset", "testset "};
 void divide_Bip(struct Bip *bipi1, struct Bip *bipi2, double rate, struct LineFile **small, struct LineFile **big) {
 	if (rate <=0 || rate >= 1) {
 		isError("divide_Bip error: wrong rate.\n");
 	}
 	rate = rate>0.5?1-rate:rate;
+
 	long l1, l2;
 	if (bipi1->edgesNum > 100000) {
-		l1 = (int)(bipi1->edgesNum*(rate+0.1));
-		l2 = (int)(bipi1->edgesNum*(1-rate+0.1));
+		l1 = (long)(bipi1->edgesNum*(rate+0.1));
+		l2 = (long)(bipi1->edgesNum*(1-rate+0.1));
 	}
 	else {
 		l2 = l1 = bipi1->edgesNum;
@@ -333,38 +304,27 @@ void divide_Bip(struct Bip *bipi1, struct Bip *bipi2, double rate, struct LineFi
 	*small = create_LineFile(NULL);
 	*big = create_LineFile(NULL);
 
-	(*small)->i1 = malloc(l1*sizeof(int));
-	assert((*small)->i1 != NULL);
-	(*small)->i2 = malloc(l1*sizeof(int));
-	assert((*small)->i2 != NULL);
-	(*big)->i1 = malloc(l2*sizeof(int));
-	assert((*big)->i1 != NULL);
-	(*big)->i2 = malloc(l2*sizeof(int));
-	assert((*big)->i2 != NULL);
+	(*small)->i1 = smalloc(l1*sizeof(int));
+	(*small)->i2 = smalloc(l1*sizeof(int));
+	(*big)->i1 = smalloc(l2*sizeof(int));
+	(*big)->i2 = smalloc(l2*sizeof(int));
 	
 	if (bipi1->score != NULL) {
-		(*small)->i3 = malloc(l1*sizeof(int));
-		assert((*small)->i3 != NULL);
-		(*big)->i3 = malloc(l2*sizeof(int));
-		assert((*big)->i3 != NULL);
+		(*small)->i3 = smalloc(l1*sizeof(int));
+		(*big)->i3 = smalloc(l2*sizeof(int));
 	}
 
 	long line1=0, line2=0;
 
-	char *i1sign = calloc(bipi1->maxId + 1, sizeof(char));
-	assert(i1sign != NULL);
-	char *i2sign = calloc(bipi2->maxId + 1, sizeof(char));
-	assert(i2sign != NULL);
+	int *i1sign = scalloc(bipi1->maxId + 1, sizeof(int));
+	int *i2sign = scalloc(bipi2->maxId + 1, sizeof(int));
 
-	int *degreei1 = malloc((bipi1->maxId + 1)*sizeof(int));
-	assert(degreei1 != NULL);
+	int *degreei1 = smalloc((bipi1->maxId + 1)*sizeof(int));
 	memcpy(degreei1, bipi1->degree, (bipi1->maxId + 1)*sizeof(int));
-	int *degreei2 = malloc((bipi2->maxId + 1)*sizeof(int));
-	assert(degreei2 != NULL);
+	int *degreei2 = smalloc((bipi2->maxId + 1)*sizeof(int));
 	memcpy(degreei2, bipi2->degree, (bipi2->maxId + 1)*sizeof(int));
 
-	int i, neigh;
-	int j;
+	int i, j, neigh;
 	for (i=0; i<bipi1->maxId + 1; ++i) {
 		for (j=0; j<bipi1->degree[i]; ++j) {
 			neigh = bipi1->edges[i][j];
@@ -406,7 +366,7 @@ void divide_Bip(struct Bip *bipi1, struct Bip *bipi2, double rate, struct LineFi
 		}
 	}
 	if ((line1 > l1) || (line2 > l2)) {
-		isError("divide_Bip: l1 and l2 two small.\n");
+		isError("l1 and l2 two small.\n");
 	}
 
 	free(i1sign);
@@ -414,20 +374,21 @@ void divide_Bip(struct Bip *bipi1, struct Bip *bipi2, double rate, struct LineFi
 	free(degreei1);
 	free(degreei2);
 
-	(*big)->linesNum = line2;
 	(*small)->linesNum = line1;
+	(*big)->linesNum = line2;
 
-	set_filename_LineFile(*big, divfilename[0]);
-	set_filename_LineFile(*small, divfilename[1]);
+	set_filename_LineFile(*big, "divided-trainset");
+	set_filename_LineFile(*small, "divided-testset");
 
-	printf("divide Bip into train&test set =>> rate: %.3f, big file's linesNum: %ld, small file's linesNum: %ld.\n", rate, line2, line1);fflush(stdout);
+	printgf("rate: %.3f, big file's linesNum: %ld, small file's linesNum: %ld.", rate, line2, line1);
 }
 
+/*********************************************************************/
+#define SIMFILESTEP 1000000
 //if target == 1, then calculate i1(mostly user)'s similarity.
 //if target == 2, then calculate i2(mostly item)'s similarity.
-static char *simfilename[3] = {"", "i1_similiarity", "i2_similiarity"};
-struct LineFile *similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, int target) {
-	if (target != 1 && target != 2) isError("similarity_Bip target");
+struct LineFile *cosine_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, int target) {
+	if (target != 1 && target != 2) isError("target should be 1 or 2");
 	int idmax, idmax2;
 	int *degree;
 	int **edges;
@@ -444,16 +405,14 @@ struct LineFile *similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, int target
 		edges = bipi2->edges;
 	}
 
-	int *sign = calloc((idmax2 + 1),sizeof(int));
-	assert(sign != NULL);
+	int *sign = scalloc((idmax2 + 1),sizeof(int));
 
 	struct LineFile *simfile = create_LineFile(NULL);
-	assert(simfile != NULL);
 
-	int con = 1000000;
-	int *i1 = malloc(con*sizeof(int));
-	int *i2 = malloc(con*sizeof(int));
-	double *d1 = malloc(con*sizeof(double));
+	int con = SIMFILESTEP;
+	int *i1 = smalloc(con*sizeof(int));
+	int *i2 = smalloc(con*sizeof(int));
+	double *d1 = smalloc(con*sizeof(double));
 
 	long linesNum = 0;
 
@@ -474,46 +433,40 @@ struct LineFile *similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, int target
 						Sij += sign[edges[j][k]];
 					}
 					if (Sij) {
-						soij = (double)Sij/pow(degree[i] * degree[j], 0.5);
+						soij = (double)Sij/sqrt(degree[i] * degree[j]);
 						//fprintf(fp, "%d, %d, %.17f\n", i, j, soij);
 						i1[linesNum] = i;
 						i2[linesNum] = j;
 						d1[linesNum] = soij;
 						++linesNum;
 						if (linesNum == con) {
-							con += 1000000;
-							int *temp = realloc(i1, con*sizeof(int));
-							assert(temp != NULL);
-							i1 = temp;
-							temp = realloc(i2, con*sizeof(int));
-							assert(temp != NULL);
-							i2 = temp;
-							double *tmp = realloc(d1, con*sizeof(double));
-							assert(tmp != NULL);
-							d1 = tmp;
+							con += SIMFILESTEP;
+							i1 = srealloc(i1, con*sizeof(int));
+							i2 = srealloc(i2, con*sizeof(int));
+							d1 = srealloc(d1, con*sizeof(double));
 						}
 					}
 				}
 			}
 		}
 	}
-
 	free(sign);
 
 	simfile->linesNum = linesNum;
 	simfile->i1 = i1;
 	simfile->i2 = i2;
 	simfile->d1 = d1;
-	set_filename_LineFile(simfile, simfilename[target]);
-	//simfile->filename = simfilename[target];	
+	char simfilename[100];
+	sprintf(simfilename, "cosine_similarity_i%d", target);
+	set_filename_LineFile(simfile, simfilename);
 
-	printf("calculate %s done =>> linesNum: %ld.\n", simfile->filename, linesNum);
+	printgf("calculate %s done, linesNum: %ld.\n", simfile->filename, linesNum);
 	return simfile;
 }
 
-
 struct LineFile *pearson_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, int target) {
-	if (target != 1 && target != 2) isError("pearson_similarity_Bip target");
+	if (target != 1 && target != 2) isError("target should be 1 or 2");
+	if (bipi1->score == NULL) isError("pearson similarity need score");
 	int idmax, idmax2;
 	int *degree;
 	int **edges;
@@ -533,22 +486,19 @@ struct LineFile *pearson_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, in
 		score = bipi2->score;
 	}
 
-	int *sign = calloc((idmax2 + 1),sizeof(int));
-	assert(sign != NULL);
+	int *sign = scalloc((idmax2 + 1),sizeof(int));
 
 	struct LineFile *simfile = create_LineFile(NULL);
-	assert(simfile != NULL);
 
-	int con = 1000000;
-	int *i1 = malloc(con*sizeof(int));
-	int *i2 = malloc(con*sizeof(int));
-	double *d1 = malloc(con*sizeof(double));
+	int con = SIMFILESTEP;
+	int *i1 = smalloc(con*sizeof(int));
+	int *i2 = smalloc(con*sizeof(int));
+	double *d1 = smalloc(con*sizeof(double));
 
 	long linesNum = 0;
 
-	int k;
 	double soij;
-	int i,j;
+	int i ,j, k;
 	for (i=0; i<idmax; ++i) {
 		if (degree[i]) {
 			memset(sign, 0, (idmax2 + 1)*sizeof(int));
@@ -563,32 +513,30 @@ struct LineFile *pearson_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, in
 					int sumxy = 0;
 					int com = 0;
 					for (k=0; k<degree[j]; ++k) {
-						if (sign[edges[j][k]] && score[j][k]) {
+						int scorei = sign[edges[j][k]];
+						int scorej = score[j][k];
+						if (scorei && scorej) {
 							com++;
-							sumx += sign[edges[j][k]];
-							sumy += score[j][k];
-							sumxsp += sign[edges[j][k]] * sign[edges[j][k]];
-							sumysp += score[j][k] * score[j][k];
-							sumxy += sign[edges[j][k]] * score[j][k];
+							sumx += scorei;
+							sumy += scorej;
+							sumxsp += scorei * scorei;
+							sumysp += scorej * scorej;
+							sumxy += scorei * scorej;
 						}
 					}
 					if (com) {
-						//printf("sumx: %d\nsumy: %d\nsumxy: %d\n", sumx, sumy, sumxy);
-						//double fenzi = (double)sumxy * com - (double)sumx * sumy;
-						//double fenmu1 = (double)sumxsp * com - (double)sumx * sumx;
-						//double fenmu2 = (double)sumysp * com - (double)sumy * sumy;;
 						double fenzi = sumxy * com - sumx * sumy;
 						double fenmu1 = sumxsp * com - sumx * sumx;
 						double fenmu2 = sumysp * com - sumy * sumy;;
-						double fenmu = sqrt(fenmu1) * sqrt(fenmu2);
 						if (fenzi < 1E-17) {
 							soij = 0;
 							//not need to do anything
 						}
 						else if (fenmu1 < 1E-17 || fenmu2 < 1E-17) {
-							isError("femu %.17f %.17f %.17f", fenzi, fenmu1, fenmu2);
+							isError("fezi: %.17f, fenmu1: %.17f fenmu2: %.17f", fenzi, fenmu1, fenmu2);
 						}
 						else {
+							double fenmu = sqrt(fenmu1) * sqrt(fenmu2);
 							soij = fenzi/fenmu;
 							//printf("%d, %d, %.17f\n", i, j, soij);
 							i1[linesNum] = i;
@@ -597,15 +545,9 @@ struct LineFile *pearson_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, in
 							++linesNum;
 							if (linesNum == con) {
 								con += 1000000;
-								int *temp = realloc(i1, con*sizeof(int));
-								assert(temp != NULL);
-								i1 = temp;
-								temp = realloc(i2, con*sizeof(int));
-								assert(temp != NULL);
-								i2 = temp;
-								double *tmp = realloc(d1, con*sizeof(double));
-								assert(tmp != NULL);
-								d1 = tmp;
+								i1 = srealloc(i1, con*sizeof(int));
+								i2 = srealloc(i2, con*sizeof(int));
+								d1 = srealloc(d1, con*sizeof(double));
 							}
 						}
 					}
@@ -613,97 +555,23 @@ struct LineFile *pearson_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, in
 			}
 		}
 	}
-
 	free(sign);
 
 	simfile->linesNum = linesNum;
 	simfile->i1 = i1;
 	simfile->i2 = i2;
 	simfile->d1 = d1;
-	set_filename_LineFile(simfile, simfilename[target]);
-	//simfile->filename = simfilename[target];	
+	char simfilename[100];
+	sprintf(simfilename, "pearson_similarity_i%d", target);
+	set_filename_LineFile(simfile, simfilename);
 
-	printf("calculate %s done =>> linesNum: %ld.\n", simfile->filename, linesNum);
-	return simfile;
-}
-
-struct LineFile *mass_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2) {
-
-
-	struct LineFile *simfile = create_LineFile(NULL);
-
-	int con = 1000000;
-	int *i1 = malloc(con*sizeof(int));
-	int *i2 = malloc(con*sizeof(int));
-	double *d1 = malloc(con*sizeof(double));
-
-	long linesNum = 0;
-
-	double *i2source = malloc((bipi2->maxId + 1)*sizeof(double));
-	double *i1source = malloc((bipi1->maxId + 1)*sizeof(double));
-
-	int i, j, neigh;
-	int degree;
-	double source;
-
-	int k;
-	for (k=0; k<bipi1->maxId + 1; ++k) {
-		if (bipi1->degree[k]) {
-			memset(i2source, 0, (bipi2->maxId+1)*sizeof(double));
-			for (j=0; j<bipi1->degree[k]; ++j) {
-				neigh = bipi1->edges[k][j];
-				i2source[neigh] = 1.0;
-			}
-			memset(i1source, 0, (bipi1->maxId+1)*sizeof(double));
-			for (i=0; i<bipi2->maxId + 1; ++i) {
-				if (i2source[i]) {
-					degree = bipi2->degree[i];
-					source = i2source[i]/(double)degree;
-					for (j=0; j<degree; ++j) {
-						neigh = bipi2->edges[i][j];
-						i1source[neigh] += source;
-					}
-				}
-			}
-			for (i=0; i<bipi1->maxId + 1; ++i) {
-				if (i1source[i] && i!=k) {
-
-					i1[linesNum] = k;
-					i2[linesNum] = i;
-					d1[linesNum] = i1source[i];
-					++linesNum;
-
-					if (linesNum == con) {
-						con += 1000000;
-						int *temp = realloc(i1, con*sizeof(int));
-						assert(temp != NULL);
-						i1 = temp;
-						temp = realloc(i2, con*sizeof(int));
-						assert(temp != NULL);
-						i2 = temp;
-						double *tmp = realloc(d1, con*sizeof(double));
-						assert(tmp != NULL);
-						d1 = tmp;
-					}
-				}
-			}
-		}
-	}
-
-	simfile->linesNum = linesNum;
-	simfile->i1 = i1;
-	simfile->i2 = i2;
-	simfile->d1 = d1;
-	printf("calculate mass similarity done.\n");
-	free(i1source);
-	free(i2source);
+	printgf("calculate %s done, linesNum: %ld.", simfile->filename, linesNum);
 	return simfile;
 }
 
 /*********************************************************************/
 struct Metrics_Bip *create_MetricsBip(void) {
-	struct Metrics_Bip *lp = malloc(sizeof(struct Metrics_Bip));
-	assert(lp != NULL);
+	struct Metrics_Bip *lp = smalloc(sizeof(struct Metrics_Bip));
 
 	int i;
 	for (i = 0; i < CA_METRICS_BIP; ++i) {
@@ -723,7 +591,6 @@ struct Metrics_Bip *create_MetricsBip(void) {
 
 //free(NULL) is ok.
 void clean_MetricsBip(struct Metrics_Bip *lp) {
-
 	int i;
 	for (i = 0; i < CA_METRICS_BIP; ++i) {
 		lp->R[i] = 0;
@@ -766,10 +633,10 @@ struct Bip_recommend_param{
 
 	double *i1source;
 	double *i2source;
-	int *i1id;
-	int *i2id;
 	double *i1sourceA;
 	double *i2sourceA;
+	int *i1id;
+	int *i2id;
 
 	double mass_score;
 	int maxscore;
@@ -783,7 +650,6 @@ struct Bip_recommend_param{
 	int L;
 	int K;
 	double *psimM;
-
 };
 
 //following is for recommendation.

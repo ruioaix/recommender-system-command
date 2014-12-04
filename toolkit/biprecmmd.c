@@ -284,7 +284,7 @@ static void do_work_divide_noscore(struct OptionArgs *oa) {
 			printf("%d, %d, %d\n", i, ua.testset_node_num[i], ua.testset_edge_num[i]);
 		}
 
-		struct LineFile *simf = similarity_Bip(tr1, tr2, 2);
+		struct LineFile *simf = cosine_similarity_Bip(tr1, tr2, 2);
 		struct iidNet *trsim = create_iidNet(simf);
 		free_LineFile(simf);
 
@@ -462,7 +462,7 @@ static void do_work_divide_score(struct OptionArgs *oa) {
 			printf("%d, %d, %d\n", i, ua.testset_node_num[i], ua.testset_edge_num[i]);
 		}
 
-		struct LineFile *simf = similarity_Bip(tr1, tr2, 2);
+		struct LineFile *simf = cosine_similarity_Bip(tr1, tr2, 2);
 		struct iidNet *trsim = create_iidNet(simf);
 		free_LineFile(simf);
 
