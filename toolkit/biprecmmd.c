@@ -211,8 +211,12 @@ static void do_work_merge(void);
 
 static void do_work(struct OptionArgs *oa) {
 	if (oa->total_filename != NULL) {
-		do_work_divide_noscore(oa);
-		do_work_divide_score(oa);
+		if (oa->calculate_CF) {
+			do_work_divide_score(oa);
+		}
+		else {
+			do_work_divide_noscore(oa);
+		}
 	}
 	else {
 		do_work_merge();
@@ -400,6 +404,9 @@ static void do_work_divide_score_CF(struct Bip *tr1, struct Bip *tr2, struct Bip
 static double *create_psimM(struct LineFile *simf, int maxId) {
 	double *psimM = smalloc((maxId + 1)*(maxId + 1) * sizeof(double));
 	int i;
+	for (i = 0; i <(maxId + 1) * (maxId + 1); ++i) {
+		psimM[i] = 0;	
+	}
 	for (i = 0; i < simf->linesNum; ++i) {
 		psimM[simf->i1[i] * (maxId + 1) + simf->i2[i]] = simf->d1[i];
 		psimM[simf->i2[i] * (maxId + 1) + simf->i1[i]] = simf->d1[i];
@@ -479,6 +486,7 @@ static void do_work_divide_score(struct OptionArgs *oa) {
 		free_Bip(tr1); free_Bip(tr2);
 		free_Bip(te1); free_Bip(te2);
 		free_iidNet(trsim);
+		free(psimM);
 	}
 
 	int loopNum = oa->loopNum;
