@@ -465,7 +465,7 @@ struct LineFile *cosine_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, int
 	sprintf(simfilename, "cosine_similarity_i%d", target);
 	set_filename_LineFile(simfile, simfilename);
 
-	printgf("calculate %s done, linesNum: %ld.\n", simfile->filename, linesNum);
+	printgf("calculate %s done, linesNum: %ld.", simfile->filename, linesNum);
 	return simfile;
 }
 
@@ -1148,8 +1148,8 @@ static void hybrid_recommend_Bip(struct Bip_recommend_param *args) {
 //return i2source
 static void CF_recommend_Bip(struct Bip_recommend_param *args) {
 
+	//variables get from args.
 	int i1 = args->i1;
-	printf("%d\t", i1); fflush(stdout);
 	double * i1source = args->i1source;
 	double *i2source = args->i2source;
 	int **i1ids = args->traini1->edges;
@@ -1159,23 +1159,19 @@ static void CF_recommend_Bip(struct Bip_recommend_param *args) {
 	int *i1degree = args->traini1->degree;
 	int *i2degree = args->traini2->degree;
 	int **i2score = args->traini2->score;
-
 	int *i1id = args->i1id;
 	int *i2id = args->i2id;
-
 	double *psimM = args->psimM;
+
+	printf("%d\t", i1); fflush(stdout);
 
 	int i, j, neigh;
 
-	for (j = 0; j < i1maxId + 1; ++j) {
-		i1id[j] = 0;	
-		i1source[j] = 0;
-	}
-	for (j=0; j<i2maxId+1; ++j) {
+	for (j = 0; j < i2maxId + 1; ++j) {
 		i2id[j] = 1;
 		i2source[j] = 0;
 	}
-	for (j=0; j<i1degree[i1]; ++j) {
+	for (j = 0; j < i1degree[i1]; ++j) {
 		i2id[i1ids[i1][j]] = 0;
 	}
 	
@@ -1194,13 +1190,28 @@ static void CF_recommend_Bip(struct Bip_recommend_param *args) {
 			i1id[k] = score;
 			k++;
 		}
-		qsort_di_desc(i1source, 0, k-1, i1id);
-		for (i = 0; i < k && i < args->K; ++i) {
-			i2source[j] += i1source[i] * i1id[i];	
-			i1source[i] = 0;
-			i1id[i] = 0;
+		if (k) {
+			//printf("%dxx%d\t", k, args->K);
+			qsort_di_desc(i1source, 0, k-1, i1id);
+			for (i = 0; i < k && i < args->K; ++i) {
+				i2source[j] += i1source[i] * i1id[i];	
+			}
+			//for (i = 0; i < k && i < args->K; ++i) {
+			//	double most = -1;
+			//	int index = -1;
+			//	int s;
+			//	for (s = 0; s < k; ++s) {
+			//		if (most < i1source[s]) {
+			//			most = i1source[s];
+			//			index = s;
+			//		}
+			//	}
+			//	i2source[j] += i1source[index] * i1id[index];	
+			//	i1source[index] = -2;
+			//}
 		}
 	}
+	print_time();
 }
 
 //mass topk
