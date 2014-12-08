@@ -1,6 +1,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 #include <getopt.h>
 #include <string.h>
 
@@ -17,6 +18,7 @@ struct OptionArgs {
 	int calculate_RENBI;
 	int calculate_UCF;
 	int calculate_ICF;
+	int calculate_SVD;
 	char *user_extra_att;
 	char *total_filename;
 	char *train_filename;
@@ -27,6 +29,7 @@ struct OptionArgs {
 	int random_seed;
 	int L;
 	int K;
+	int F;
 
 	int random;
 };
@@ -40,6 +43,7 @@ static void display_usage(void) {
 	puts("-E: using RENBI");
 	puts("-C: using UCF");
 	puts("-F: using ICF");
+	puts("-S: using SVD");
 	puts("-u: users extra attribute");
 	puts("-i: full dataset filename");
 	puts("-T: train dataset filename");
@@ -68,6 +72,7 @@ int main(int argc, char **argv) {
 	OptionArgs.calculate_RENBI = 0;
 	OptionArgs.calculate_UCF = 0;
 	OptionArgs.calculate_ICF = 0;
+	OptionArgs.calculate_SVD = 0;
 
 	OptionArgs.user_extra_att = NULL;
 	OptionArgs.total_filename = NULL;
@@ -79,10 +84,11 @@ int main(int argc, char **argv) {
 	OptionArgs.random_seed = 1;
 	OptionArgs.L = 50;
 	OptionArgs.K = 50;
+	OptionArgs.F = 100;
 
 	OptionArgs.random = 0;
 
-	static const char *optString = "mhHNEi:T:t:l:u:d:s:L:CFK:?";
+	static const char *optString = "mhHNEi:T:t:l:u:d:s:L:CFK:f:?";
 
 	struct option longOpts[] = {
 		{"mass", no_argument, NULL, 'm'},
@@ -92,6 +98,7 @@ int main(int argc, char **argv) {
 		{"RENBI", no_argument, NULL, 'E'},
 		{"UCF", no_argument, NULL, 'C'},
 		{"ICF", no_argument, NULL, 'F'},
+		{"SVD", no_argument, NULL, 'S'},
 
 		{"usersExtraAtt", required_argument, NULL, 'u'},
 		{"dataset", required_argument, NULL, 'i'},
@@ -103,6 +110,7 @@ int main(int argc, char **argv) {
 		{"random-seed", required_argument, NULL, 's'},
 		{"recmlistLength", required_argument, NULL, 'L'},
 		{"CFuserSimlistLength", required_argument, NULL, 'K'},
+		{"SVD-F", required_argument, NULL, 'f'},
 		
 
 		{"help", no_argument, NULL, '?'}
@@ -135,6 +143,9 @@ int main(int argc, char **argv) {
 				break;
 			case 'F':
 				OptionArgs.calculate_ICF = 1;
+				break;
+			case 'S':
+				OptionArgs.calculate_SVD = 1;
 				break;
 
 			//file
@@ -171,6 +182,9 @@ int main(int argc, char **argv) {
 				break;
 			case 'K':
 				OptionArgs.K = strtol(optarg, NULL, 10);
+				break;
+			case 'f':
+				OptionArgs.F = strtol(optarg, NULL, 10);
 				break;
 
 			//help
@@ -218,7 +232,7 @@ static void do_work_merge(void);
 
 static void do_work(struct OptionArgs *oa) {
 	if (oa->total_filename != NULL) {
-		if (oa->calculate_UCF || oa->calculate_ICF) {
+		if (oa->calculate_UCF || oa->calculate_ICF || oa->calculate_SVD) {
 			do_work_divide_score(oa);
 		}
 		else {
@@ -408,6 +422,7 @@ static void do_work_divide_noscore_RENBI(struct Bip *tr1, struct Bip *tr2, struc
 
 static void do_work_divide_score_UCF(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trainItemSim, double *psimM, struct Metrics_Bip *result, struct User_ATT *ua, int L, int K);
 static void do_work_divide_score_ICF(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trainItemSim, double *psimM, struct Metrics_Bip *result, struct User_ATT *ua, int L, int K);
+static void do_work_divide_score_SVD(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trainItemSim, struct Metrics_Bip *result, struct User_ATT *ua, int L, int F);
 
 static double *create_psimM(struct LineFile *simf, int maxId) {
 	double *psimM = smalloc((maxId + 1)*(maxId + 1) * sizeof(double));
@@ -450,6 +465,7 @@ static void do_work_divide_score(struct OptionArgs *oa) {
 
 	struct Metrics_Bip *UCF_result = create_MetricsBip();
 	struct Metrics_Bip *ICF_result = create_MetricsBip();
+	struct Metrics_Bip *SVD_result = create_MetricsBip();
 
 	for (i = 0; i < oa->loopNum; ++i) {
 		divide_Bip(ds1, ds2, oa->dataset_divide_rate, &smlp, &bigp);
@@ -497,6 +513,9 @@ static void do_work_divide_score(struct OptionArgs *oa) {
 			do_work_divide_score_ICF(tr1, tr2, te1, te2, trsim, psimM, ICF_result, &ua, oa->L, oa->K);
 			free(psimM);
 		}
+		if (oa->calculate_SVD == 1) {
+			do_work_divide_score_SVD(tr1, tr2, te1, te2, trsim, SVD_result, &ua, oa->L, oa->F);
+		}
 
 		free_LineFile(smlp); 
 		free_LineFile(bigp);
@@ -520,6 +539,7 @@ static void do_work_divide_score(struct OptionArgs *oa) {
 	free(user_gender); free(user_age);
 	free_MetricsBip(UCF_result);
 	free_MetricsBip(ICF_result);
+	free_MetricsBip(SVD_result);
 	free_Bip(ds1); free_Bip(ds2);
 	free_LineFile(lf); 
 }
@@ -534,4 +554,85 @@ static void do_work_divide_score_ICF(struct Bip *tr1, struct Bip *tr2, struct Bi
 	struct Metrics_Bip *ICF_result = ICF_Bip(tr1, tr2, te1, te2, trsim, psimM, ua, L, K);
 	metrics_add_add(result, ICF_result);
 	free_MetricsBip(ICF_result);
+}
+
+static void do_work_divide_score_SVD(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct Metrics_Bip *result, struct User_ATT *ua, int L, int F) {
+	//all score avarage
+	//rui memory allocate
+	double **rui = smalloc((tr1->maxId + 1) * sizeof(double *));
+	double **eui = smalloc((tr1->maxId + 1) * sizeof(double *));
+	long allscore = 0;
+	int i,j,k;
+	for (j = 0; j < tr1->maxId + 1; ++j) {
+		if (tr1->degree[j]) {	
+			rui[j] = smalloc(tr1->degree[j] * sizeof(double));
+			eui[j] = smalloc(tr1->degree[j] * sizeof(double));
+			for (k = 0; k < tr1->degree[j]; ++k) {
+				allscore+=tr1->score[j][k];	
+			}
+		}
+	}
+	double avascore = (double)allscore/tr1->edgesNum;
+	//bi
+	double *itemscore = smalloc((tr2->maxId + 1)*sizeof(double));
+	double SVD_l2 = 25;
+	for (j = 0; j < tr2->maxId + 1; ++j) {
+		itemscore[j] = 0;
+		for (k = 0; k < tr2->degree[j]; ++k) {
+			itemscore[j] += tr2->score[j][k] - avascore;	
+		}
+		itemscore[j] /= SVD_l2 + tr2->degree[j];
+	}
+	//bu
+	double *userscore = smalloc((tr1->maxId + 1) * sizeof(double));
+	double SVD_l3 = 25;
+	for (j = 0; j < tr1->maxId + 1; ++j) {
+		userscore[j] = 0;
+		for (k = 0; k < tr1->degree[j]; ++k) {
+			userscore[j] += tr1->score[j][k] - avascore - itemscore[tr1->edges[j][k]];
+		}
+		userscore[j] /= SVD_l3 + tr1->degree[j];
+	}
+	//p, q
+	double *p = smalloc((tr1->maxId + 1)*F*sizeof(double));
+	double *q = smalloc((tr2->maxId + 1)*F*sizeof(double));
+	double sqrtF = sqrt(F);
+	for (i = 0; i < (tr1->maxId + 1)*F; ++i) {
+		p[i] = 0.1*get_d_MTPR()/sqrtF;
+	}
+	for (i = 0; i < (tr2->maxId + 1)*F; ++i) {
+		q[i] = 0.1*get_d_MTPR()/sqrtF;	
+	}
+	//
+	double SVD_l = 0.3, SVD_g = 0.02;
+	for (j = 0; j < tr1->maxId + 1; ++j) {
+		double usj = userscore[j];
+		for (k = 0; k < tr1->degree[j]; ++k) {
+			int item = tr1->edges[j][k];
+			rui[j][k] = avascore + usj + itemscore[item];
+			for (i = 0; i < F; ++i) {
+				rui[j][k] += p[j*(tr1->maxId + 1) + i] * q[item * (tr2->maxId + 1) + i];
+			}
+			eui[j][k] = tr1->score[j][k] - rui[j][k];
+			userscore[j] += SVD_g * (eui[j][k] - SVD_l * usj);
+		}
+	}
+	for (j = 0; j < tr2->maxId + 1; ++j) {
+		double isj = itemscore[j];
+		for (k = 0; k < tr2->degree[j]; ++k) {
+			itemscore[j] += SVD_g * (eui[tr2->edges[j][k]][j] - SVD_l * isj);
+		}
+	}
+	for (j = 0; j < tr1->maxId + 1; ++j) {
+		for (k = 0; k < F; ++k) {
+			double pjk = p[j * (tr1->maxId + 1) + k];
+			for (i = 0; i < tr1->degree[j]; ++i) {
+				p[j * (tr1->maxId + 1) + k] += SVD_g * (eui[j][i] * q[tr1->edges[j][i] * (tr2->maxId + 1) + k] - SVD_l *  pjk);
+			}
+		}
+	}
+
+	//struct Metrics_Bip *ICF_result = ICF_Bip(tr1, tr2, te1, te2, trsim, psimM, ua, L, K);
+	//metrics_add_add(result, ICF_result);
+	//free_MetricsBip(ICF_result);
 }

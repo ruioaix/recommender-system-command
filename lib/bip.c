@@ -1223,7 +1223,6 @@ static void ICF_recommend_Bip(struct Bip_recommend_param *args) {
 	int i1 = args->i1;
 	double *i2source = args->i2source;
 	int **i1ids = args->traini1->edges;
-	int i1maxId = args->traini1->maxId;
 	int i2maxId = args->traini2->maxId;
 	int *i1degree = args->traini1->degree;
 	int *i2id = args->i2id;
@@ -1248,7 +1247,7 @@ static void ICF_recommend_Bip(struct Bip_recommend_param *args) {
 		for (i = 0; i < i1degree[i1]; ++i) {
 			//neigh is one selected item.
 			neigh = i1ids[i1][i];
-			i2source[j] += psimM[j * (i1maxId + 1) + neigh];
+			i2source[j] += psimM[j * (i2maxId + 1) + neigh];
 		}
 	}
 	print_time();
