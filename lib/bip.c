@@ -770,6 +770,9 @@ static void metrics_HL_COV_Bip(int i1maxId, int *i1degree, int i2maxId, int L, i
 		}
 	}
 	int cov[CA_METRICS_BIP];
+	for (j = 0; j < CA_METRICS_BIP; ++j) {
+		cov[j] = 0;	
+	}
 	for (i = 0; i < i2maxId + 1; ++i) {
 		if (sign1[i]) {
 			cov[0]++;
