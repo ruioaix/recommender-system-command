@@ -112,6 +112,7 @@ double *mass_scoret3step_rank_Bip(struct Bip *traini1, struct Bip *traini2, doub
 double *mass_degree_rank_Bip(struct Bip *traini1, struct Bip *traini2, double mass_score);
 
 //CF 
-struct Metrics_Bip *CF_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainItemSim, double *psimM, struct User_ATT *ua, int L, int K);
+struct Metrics_Bip *UCF_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainItemSim, double *psimM, struct User_ATT *ua, int L, int K);
+struct Metrics_Bip *ICF_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainItemSim, double *psimM, struct User_ATT *ua, int L, int K);
 
 #endif

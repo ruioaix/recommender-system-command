@@ -15,7 +15,8 @@ struct OptionArgs {
 	int calculate_hybrid;
 	int calculate_HNBI;
 	int calculate_RENBI;
-	int calculate_CF;
+	int calculate_UCF;
+	int calculate_ICF;
 	char *user_extra_att;
 	char *total_filename;
 	char *train_filename;
@@ -37,7 +38,8 @@ static void display_usage(void) {
 	puts("-H: using hybrid");
 	puts("-N: using HNBI");
 	puts("-E: using RENBI");
-	puts("-C: using CF");
+	puts("-C: using UCF");
+	puts("-F: using ICF");
 	puts("-u: users extra attribute");
 	puts("-i: full dataset filename");
 	puts("-T: train dataset filename");
@@ -64,7 +66,8 @@ int main(int argc, char **argv) {
 	OptionArgs.calculate_hybrid = 0;
 	OptionArgs.calculate_HNBI = 0;
 	OptionArgs.calculate_RENBI = 0;
-	OptionArgs.calculate_CF = 0;
+	OptionArgs.calculate_UCF = 0;
+	OptionArgs.calculate_ICF = 0;
 
 	OptionArgs.user_extra_att = NULL;
 	OptionArgs.total_filename = NULL;
@@ -79,7 +82,7 @@ int main(int argc, char **argv) {
 
 	OptionArgs.random = 0;
 
-	static const char *optString = "mhHNEi:T:t:l:u:d:s:L:CK:?";
+	static const char *optString = "mhHNEi:T:t:l:u:d:s:L:CFK:?";
 
 	struct option longOpts[] = {
 		{"mass", no_argument, NULL, 'm'},
@@ -87,7 +90,8 @@ int main(int argc, char **argv) {
 		{"hybrid", no_argument, NULL, 'H'},
 		{"HNBI", no_argument, NULL, 'N'},
 		{"RENBI", no_argument, NULL, 'E'},
-		{"CF", no_argument, NULL, 'C'},
+		{"UCF", no_argument, NULL, 'C'},
+		{"ICF", no_argument, NULL, 'F'},
 
 		{"usersExtraAtt", required_argument, NULL, 'u'},
 		{"dataset", required_argument, NULL, 'i'},
@@ -127,7 +131,10 @@ int main(int argc, char **argv) {
 				OptionArgs.calculate_RENBI = 1;
 				break;
 			case 'C':
-				OptionArgs.calculate_CF = 1;
+				OptionArgs.calculate_UCF = 1;
+				break;
+			case 'F':
+				OptionArgs.calculate_ICF = 1;
 				break;
 
 			//file
@@ -211,7 +218,7 @@ static void do_work_merge(void);
 
 static void do_work(struct OptionArgs *oa) {
 	if (oa->total_filename != NULL) {
-		if (oa->calculate_CF) {
+		if (oa->calculate_UCF || oa->calculate_ICF) {
 			do_work_divide_score(oa);
 		}
 		else {
@@ -399,7 +406,8 @@ static void do_work_divide_noscore_RENBI(struct Bip *tr1, struct Bip *tr2, struc
 }
 
 
-static void do_work_divide_score_CF(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trainItemSim, double *psimM, struct Metrics_Bip *result, struct User_ATT *ua, int L, int K);
+static void do_work_divide_score_UCF(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trainItemSim, double *psimM, struct Metrics_Bip *result, struct User_ATT *ua, int L, int K);
+static void do_work_divide_score_ICF(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trainItemSim, double *psimM, struct Metrics_Bip *result, struct User_ATT *ua, int L, int K);
 
 static double *create_psimM(struct LineFile *simf, int maxId) {
 	double *psimM = smalloc((maxId + 1)*(maxId + 1) * sizeof(double));
@@ -440,7 +448,8 @@ static void do_work_divide_score(struct OptionArgs *oa) {
 	ua.gender = user_gender;
 	ua.age = user_age;
 
-	struct Metrics_Bip *CF_result = create_MetricsBip();
+	struct Metrics_Bip *UCF_result = create_MetricsBip();
+	struct Metrics_Bip *ICF_result = create_MetricsBip();
 
 	for (i = 0; i < oa->loopNum; ++i) {
 		divide_Bip(ds1, ds2, oa->dataset_divide_rate, &smlp, &bigp);
@@ -473,12 +482,20 @@ static void do_work_divide_score(struct OptionArgs *oa) {
 		struct iidNet *trsim = create_iidNet(simf);
 		free_LineFile(simf);
 
-		simf = pearson_similarity_Bip(tr1, tr2, 1);
-		double *psimM = create_psimM(simf, tr1->maxId);
-		free_LineFile(simf);
 
-		if (oa->calculate_CF == 1) {
-			do_work_divide_score_CF(tr1, tr2, te1, te2, trsim, psimM, CF_result, &ua, oa->L, oa->K);
+		if (oa->calculate_UCF == 1) {
+			simf = pearson_similarity_Bip(tr1, tr2, 1);
+			double *psimM = create_psimM(simf, tr1->maxId);
+			free_LineFile(simf);
+			do_work_divide_score_UCF(tr1, tr2, te1, te2, trsim, psimM, UCF_result, &ua, oa->L, oa->K);
+			free(psimM);
+		}
+		if (oa->calculate_ICF == 1) {
+			simf = pearson_similarity_Bip(tr1, tr2, 2);
+			double *psimM = create_psimM(simf, tr2->maxId);
+			free_LineFile(simf);
+			do_work_divide_score_ICF(tr1, tr2, te1, te2, trsim, psimM, ICF_result, &ua, oa->L, oa->K);
+			free(psimM);
 		}
 
 		free_LineFile(smlp); 
@@ -486,24 +503,35 @@ static void do_work_divide_score(struct OptionArgs *oa) {
 		free_Bip(tr1); free_Bip(tr2);
 		free_Bip(te1); free_Bip(te2);
 		free_iidNet(trsim);
-		free(psimM);
 	}
 
 	int loopNum = oa->loopNum;
-	if (oa->calculate_CF == 1) {
+	if (oa->calculate_UCF == 1) {
 		for (i = 0; i < CA_METRICS_BIP; ++i) {
-			printf("\tCF_%d\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", i, loopNum, CF_result->R[i]/loopNum, CF_result->RL[i]/loopNum, CF_result->PL[i]/loopNum, CF_result->IL[i]/loopNum, CF_result->HL[i]/loopNum, CF_result->NL[i]/loopNum, CF_result->COV[i]/loopNum);
+			printf("\tUCF_%d\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", i, loopNum, UCF_result->R[i]/loopNum, UCF_result->RL[i]/loopNum, UCF_result->PL[i]/loopNum, UCF_result->IL[i]/loopNum, UCF_result->HL[i]/loopNum, UCF_result->NL[i]/loopNum, UCF_result->COV[i]/loopNum);
+		}
+	}
+	if (oa->calculate_ICF == 1) {
+		for (i = 0; i < CA_METRICS_BIP; ++i) {
+			printf("\tICF_%d\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", i, loopNum, ICF_result->R[i]/loopNum, ICF_result->RL[i]/loopNum, ICF_result->PL[i]/loopNum, ICF_result->IL[i]/loopNum, ICF_result->HL[i]/loopNum, ICF_result->NL[i]/loopNum, ICF_result->COV[i]/loopNum);
 		}
 	}
 
 	free(user_gender); free(user_age);
-	free_MetricsBip(CF_result);
+	free_MetricsBip(UCF_result);
+	free_MetricsBip(ICF_result);
 	free_Bip(ds1); free_Bip(ds2);
 	free_LineFile(lf); 
 }
 
-static void do_work_divide_score_CF(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, double *psimM, struct Metrics_Bip *result, struct User_ATT *ua, int L, int K) {
-	struct Metrics_Bip *CF_result = CF_Bip(tr1, tr2, te1, te2, trsim, psimM, ua, L, K);
-	metrics_add_add(result, CF_result);
-	free_MetricsBip(CF_result);
+static void do_work_divide_score_UCF(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, double *psimM, struct Metrics_Bip *result, struct User_ATT *ua, int L, int K) {
+	struct Metrics_Bip *UCF_result = UCF_Bip(tr1, tr2, te1, te2, trsim, psimM, ua, L, K);
+	metrics_add_add(result, UCF_result);
+	free_MetricsBip(UCF_result);
+}
+
+static void do_work_divide_score_ICF(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, double *psimM, struct Metrics_Bip *result, struct User_ATT *ua, int L, int K) {
+	struct Metrics_Bip *ICF_result = ICF_Bip(tr1, tr2, te1, te2, trsim, psimM, ua, L, K);
+	metrics_add_add(result, ICF_result);
+	free_MetricsBip(ICF_result);
 }

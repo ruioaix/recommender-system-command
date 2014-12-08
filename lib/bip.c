@@ -1149,7 +1149,7 @@ static void hybrid_recommend_Bip(struct Bip_recommend_param *args) {
 
 //CF
 //return i2source
-static void CF_recommend_Bip(struct Bip_recommend_param *args) {
+static void UCF_recommend_Bip(struct Bip_recommend_param *args) {
 
 	//variables get from args.
 	int i1 = args->i1;
@@ -1212,6 +1212,43 @@ static void CF_recommend_Bip(struct Bip_recommend_param *args) {
 			//	i2source[j] += i1source[index] * i1id[index];	
 			//	i1source[index] = -2;
 			//}
+		}
+	}
+	print_time();
+}
+
+static void ICF_recommend_Bip(struct Bip_recommend_param *args) {
+
+	//variables get from args.
+	int i1 = args->i1;
+	double *i2source = args->i2source;
+	int **i1ids = args->traini1->edges;
+	int i1maxId = args->traini1->maxId;
+	int i2maxId = args->traini2->maxId;
+	int *i1degree = args->traini1->degree;
+	int *i2id = args->i2id;
+	double *psimM = args->psimM;
+
+	printf("%d\t", i1); fflush(stdout);
+
+	int i, j, neigh;
+
+	for (j = 0; j < i2maxId + 1; ++j) {
+		i2id[j] = 1;
+		i2source[j] = 0;
+	}
+	for (j = 0; j < i1degree[i1]; ++j) {
+		i2id[i1ids[i1][j]] = 0;
+	}
+	
+	for (j=0; j<i2maxId+1; ++j) {
+		//j is item
+		if (i2id[j] == 0) continue;
+		//now j is the item which user i1 hasn't choosen.
+		for (i = 0; i < i1degree[i1]; ++i) {
+			//neigh is one selected item.
+			neigh = i1ids[i1][i];
+			i2source[j] += psimM[j * (i1maxId + 1) + neigh];
 		}
 	}
 	print_time();
@@ -1978,7 +2015,7 @@ double *mass_degree_rank_Bip(struct Bip *traini1, struct Bip *traini2, double ma
 	return rank_Bip(mass_degree_recommend_Bip, &param);
 }
 
-struct Metrics_Bip *CF_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainItemSim, double *psimM, struct User_ATT *ua, int L, int K) {
+struct Metrics_Bip *UCF_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainItemSim, double *psimM, struct User_ATT *ua, int L, int K) {
 	print_time();
 	struct Bip_recommend_param param;
 	param.itemSim = trainItemSim;
@@ -2000,5 +2037,30 @@ struct Metrics_Bip *CF_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip 
 
 	param.psimM = psimM;
 
-	return recommend_Bip(CF_recommend_Bip, &param);
+	return recommend_Bip(UCF_recommend_Bip, &param);
+}
+
+struct Metrics_Bip *ICF_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainItemSim, double *psimM, struct User_ATT *ua, int L, int K) {
+	print_time();
+	struct Bip_recommend_param param;
+	param.itemSim = trainItemSim;
+
+	param.traini1 = traini1;
+	param.traini2 = traini2;
+	param.testi1 = testi1;
+
+	param.user_gender = ua->gender;
+	param.user_age = ua->age;
+	int i;
+	for (i = 0; i < CA_METRICS_BIP; ++i) {
+		param.testset_node_num[i] = ua->testset_node_num[i];
+		param.testset_edge_num[i] = ua->testset_edge_num[i];
+	}
+
+	param.L = L;
+	param.K = K;
+
+	param.psimM = psimM;
+
+	return recommend_Bip(ICF_recommend_Bip, &param);
 }
