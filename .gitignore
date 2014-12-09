@@ -5,6 +5,7 @@ script
 result
 result-*
 run
+run-*
 process
 cluster_output
 *.swp
