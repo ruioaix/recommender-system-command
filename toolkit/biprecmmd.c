@@ -557,22 +557,22 @@ static void do_work_divide_score_ICF(struct Bip *tr1, struct Bip *tr2, struct Bi
 }
 
 static void do_work_divide_score_SVD(struct Bip *tr1, struct Bip *tr2, struct Bip *te1, struct Bip *te2, struct iidNet *trsim, struct Metrics_Bip *result, struct User_ATT *ua, int L, int F) {
-	//all score avarage
-	//rui memory allocate
-	double **rui = smalloc((tr1->maxId + 1) * sizeof(double *));
-	double **eui = smalloc((tr1->maxId + 1) * sizeof(double *));
+	//memory allocate
+	double *rui = smalloc((tr1->maxId + 1) * (tr2->maxId + 1) * sizeof(double));
+	double *rui_s = smalloc((tr1->maxId + 1) * (tr2->maxId + 1) * sizeof(double)); 
+	double *eui = smalloc((tr1->maxId + 1) * (tr2->maxId + 1) * sizeof(double)); 
+	//all score avarage 
 	long allscore = 0;
 	int i,j,k;
 	for (j = 0; j < tr1->maxId + 1; ++j) {
 		if (tr1->degree[j]) {	
-			rui[j] = smalloc(tr1->degree[j] * sizeof(double));
-			eui[j] = smalloc(tr1->degree[j] * sizeof(double));
 			for (k = 0; k < tr1->degree[j]; ++k) {
 				allscore+=tr1->score[j][k];	
 			}
 		}
 	}
 	double avascore = (double)allscore/tr1->edgesNum;
+
 	//bi
 	double *itemscore = smalloc((tr2->maxId + 1)*sizeof(double));
 	double SVD_l2 = 25;
@@ -583,6 +583,7 @@ static void do_work_divide_score_SVD(struct Bip *tr1, struct Bip *tr2, struct Bi
 		}
 		itemscore[j] /= SVD_l2 + tr2->degree[j];
 	}
+
 	//bu
 	double *userscore = smalloc((tr1->maxId + 1) * sizeof(double));
 	double SVD_l3 = 25;
@@ -593,6 +594,7 @@ static void do_work_divide_score_SVD(struct Bip *tr1, struct Bip *tr2, struct Bi
 		}
 		userscore[j] /= SVD_l3 + tr1->degree[j];
 	}
+
 	//p, q
 	double *p = smalloc((tr1->maxId + 1)*F*sizeof(double));
 	double *q = smalloc((tr2->maxId + 1)*F*sizeof(double));
@@ -603,36 +605,129 @@ static void do_work_divide_score_SVD(struct Bip *tr1, struct Bip *tr2, struct Bi
 	for (i = 0; i < (tr2->maxId + 1)*F; ++i) {
 		q[i] = 0.1*get_d_MTPR()/sqrtF;	
 	}
-	//
+
+	//loop, 
+	//1 rui, 
+	//2 eui,
+	//3 bu,
+	//4 bi,
+	//5 p,
+	//6 q,
 	double SVD_l = 0.3, SVD_g = 0.02;
-	for (j = 0; j < tr1->maxId + 1; ++j) {
-		double usj = userscore[j];
-		for (k = 0; k < tr1->degree[j]; ++k) {
-			int item = tr1->edges[j][k];
-			rui[j][k] = avascore + usj + itemscore[item];
-			for (i = 0; i < F; ++i) {
-				rui[j][k] += p[j*(tr1->maxId + 1) + i] * q[item * (tr2->maxId + 1) + i];
+	int Tstep = 100;
+	double slowRate = 0.99;
+	for (i = 0; i < tr1->maxId + 1; ++i) {
+		for (j = 0; j < tr2->maxId + 1; ++j) {
+			rui[i * (tr1->maxId + 1) + j] = avascore + userscore[i] + itemscore[j];
+			for (k = 0; k < F; ++k) {
+				rui[i * (tr1->maxId + 1) + j] += p[i * (tr1->maxId + 1) + k] * q[j * (tr2->maxId + 1) + k];
 			}
-			eui[j][k] = tr1->score[j][k] - rui[j][k];
-			userscore[j] += SVD_g * (eui[j][k] - SVD_l * usj);
 		}
 	}
-	for (j = 0; j < tr2->maxId + 1; ++j) {
-		double isj = itemscore[j];
-		for (k = 0; k < tr2->degree[j]; ++k) {
-			itemscore[j] += SVD_g * (eui[tr2->edges[j][k]][j] - SVD_l * isj);
+	for (i = 0; i < tr1->maxId + 1; ++i) {
+		for (j = 0; j < tr1->degree[i]; ++j) {
+			eui[i * (tr1->maxId + 1) + tr1->edges[i][j]] = tr1->score[i][j] - rui[i * (tr1->maxId + 1) + tr1->edges[i][j]];
 		}
 	}
-	for (j = 0; j < tr1->maxId + 1; ++j) {
+	for (i = 0; i < tr1->maxId + 1; ++i) {
+		double usi = userscore[i];
+		for (j = 0; j < tr1->degree[i]; ++j) {
+			userscore[i] = usi + SVD_g * (eui[i * (tr1->maxId + 1) + tr1->edges[i][j]] - SVD_l * usi);
+		}
+	}
+	for (i = 0; i < tr2->maxId + 1; ++i) {
+		double isi = itemscore[i];
+		for (j = 0; j < tr2->degree[i]; ++j) {
+			itemscore[i] = isi + SVD_g * (eui[tr2->edges[i][j] * (tr1->maxId + 1) + i] - SVD_l * isi);	
+		}
+	}
+	for (i = 0; i < tr1->maxId + 1; ++i) {
 		for (k = 0; k < F; ++k) {
-			double pjk = p[j * (tr1->maxId + 1) + k];
-			for (i = 0; i < tr1->degree[j]; ++i) {
-				p[j * (tr1->maxId + 1) + k] += SVD_g * (eui[j][i] * q[tr1->edges[j][i] * (tr2->maxId + 1) + k] - SVD_l *  pjk);
+			double pik = p[i * (tr1->maxId + 1) + k];
+			for (j = 0; j < tr1->degree[i]; ++j) {
+				p[j * (tr1->maxId + 1) + k] = pik + SVD_g * (eui[i * (tr1->maxId + 1) + tr1->edges[i][j]] * q[tr1->edges[j][i] * (tr2->maxId + 1) + k] - SVD_l * pik);
+			}
+		}
+	}
+	for (i = 0; i < tr2->maxId + 1; ++i) {
+		for (k = 0; k < F; ++k) {
+			double qik = q[i * (tr2->maxId + 1) + k];
+			for (j = 0; j < tr2->degree[j]; ++j) {
+				q[i * (tr2->maxId + 1) + k] = qik + SVD_g * (eui[tr2->edges[i][j] * (tr1->maxId + 1) + i] * p[tr2->edges[i][j] * (tr1->maxId + 1) + k] - SVD_l * qik);
 			}
 		}
 	}
 
-	//struct Metrics_Bip *ICF_result = ICF_Bip(tr1, tr2, te1, te2, trsim, psimM, ua, L, K);
-	//metrics_add_add(result, ICF_result);
-	//free_MetricsBip(ICF_result);
+	double RMSE_T = 0;
+	for (i = 0; i < tr1->maxId + 1; ++i) {
+		for (j = 0; j < tr1->degree[i]; ++j) {
+			RMSE_T += pow(eui[i * (tr1->maxId + 1) + tr1->edges[i][j]], 2);
+		}
+	}
+	RMSE_T = sqrt(RMSE_T/tr1->edgesNum);
+	memcpy(rui_s, rui, sizeof(double) * (tr1->maxId + 1) * (tr2->maxId + 1));
+
+	do {
+		for (i = 0; i < tr1->maxId + 1; ++i) {
+			for (j = 0; j < tr2->maxId + 1; ++j) {
+				rui[i * (tr1->maxId + 1) + j] = avascore + userscore[i] + itemscore[j];
+				for (k = 0; k < F; ++k) {
+					rui[i * (tr1->maxId + 1) + j] += p[i * (tr1->maxId + 1) + k] * q[j * (tr2->maxId + 1) + k];
+				}
+			}
+		}
+		for (i = 0; i < tr1->maxId + 1; ++i) {
+			for (j = 0; j < tr1->degree[i]; ++j) {
+				eui[i * (tr1->maxId + 1) + tr1->edges[i][j]] = tr1->score[i][j] - rui[i * (tr1->maxId + 1) + tr1->edges[i][j]];
+			}
+		}
+		for (i = 0; i < tr1->maxId + 1; ++i) {
+			double usi = userscore[i];
+			for (j = 0; j < tr1->degree[i]; ++j) {
+				userscore[i] = usi + SVD_g * (eui[i * (tr1->maxId + 1) + tr1->edges[i][j]] - SVD_l * usi);
+			}
+		}
+		for (i = 0; i < tr2->maxId + 1; ++i) {
+			double isi = itemscore[i];
+			for (j = 0; j < tr2->degree[i]; ++j) {
+				itemscore[i] = isi + SVD_g * (eui[tr2->edges[i][j] * (tr1->maxId + 1) + i] - SVD_l * isi);	
+			}
+		}
+		for (i = 0; i < tr1->maxId + 1; ++i) {
+			for (k = 0; k < F; ++k) {
+				double pik = p[i * (tr1->maxId + 1) + k];
+				for (j = 0; j < tr1->degree[i]; ++j) {
+					p[j * (tr1->maxId + 1) + k] = pik + SVD_g * (eui[i * (tr1->maxId + 1) + tr1->edges[i][j]] * q[tr1->edges[j][i] * (tr2->maxId + 1) + k] - SVD_l * pik);
+				}
+			}
+		}
+		for (i = 0; i < tr2->maxId + 1; ++i) {
+			for (k = 0; k < F; ++k) {
+				double qik = q[i * (tr2->maxId + 1) + k];
+				for (j = 0; j < tr2->degree[j]; ++j) {
+					q[i * (tr2->maxId + 1) + k] = qik + SVD_g * (eui[tr2->edges[i][j] * (tr1->maxId + 1) + i] * p[tr2->edges[i][j] * (tr1->maxId + 1) + k] - SVD_l * qik);
+				}
+			}
+		}
+		double RMSE = 0;
+		for (i = 0; i < tr1->maxId + 1; ++i) {
+			for (j = 0; j < tr1->degree[i]; ++j) {
+				RMSE += pow(eui[i * (tr1->maxId + 1) + tr1->edges[i][j]], 2);
+			}
+		}
+		RMSE = sqrt(RMSE/tr1->edgesNum); 
+
+		if (RMSE < RMSE_T) {
+			memcpy(rui_s, rui, sizeof(double) * (tr1->maxId + 1) * (tr2->maxId + 1));
+		}
+
+		SVD_g *= slowRate;
+	} while (Tstep--);
+	free(p); free(q);
+	free(userscore); free(itemscore);
+	free(rui); free(eui);
+
+	struct Metrics_Bip *SVD_result = SVD_Bip(tr1, tr2, te1, te2, trsim, rui_s, ua, L);
+	metrics_add_add(result, SVD_result);
+	free_MetricsBip(SVD_result);
 }

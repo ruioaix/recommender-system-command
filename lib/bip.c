@@ -2063,3 +2063,7 @@ struct Metrics_Bip *ICF_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip
 
 	return recommend_Bip(ICF_recommend_Bip, &param);
 }
+
+struct Metrics_Bip *SVD_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainItemSim, double *rui, struct User_ATT *ua, int L) {
+	return NULL;
+}
