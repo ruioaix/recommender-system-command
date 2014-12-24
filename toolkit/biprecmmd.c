@@ -305,9 +305,9 @@ static void do_work_divide_noscore(struct OptionArgs *oa) {
 		ua.testset_node_num[0] = te1->idNum;
 		ua.testset_edge_num[0] = te1->edgesNum;
 		
-		for (i = 0; i < CA_METRICS_BIP; ++i) {
-			printf("%d, %d, %d\n", i, ua.testset_node_num[i], ua.testset_edge_num[i]);
-		}
+		//for (i = 0; i < CA_METRICS_BIP; ++i) {
+		//	printf("%d, %d, %d\n", i, ua.testset_node_num[i], ua.testset_edge_num[i]);
+		//}
 
 		struct LineFile *simf = cosine_similarity_Bip(tr1, tr2, 2);
 		struct iidNet *trsim = create_iidNet(simf);
