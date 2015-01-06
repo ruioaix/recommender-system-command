@@ -8,13 +8,10 @@ $(tlkt) :
 
 all : $(lib) $(tlkt) $(checkdir)
 
-$(tlkt) : $(lib)
+$(tlkt) $(checkdir) : $(lib)
 	@$(MAKE) -C $@ all
 
 $(lib) :
-	@$(MAKE) -C $@ all
-
-$(checkdir) : $(lib) 
 	@$(MAKE) -C $@ all
 
 clean :
