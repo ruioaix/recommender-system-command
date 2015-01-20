@@ -1,3 +1,5 @@
+all: 
+
 bin_folder := bin
 
 findsource = $(wildcard $(1)/*.c)
@@ -17,26 +19,30 @@ lib_cn := lib/complex_network
 lib_cn_source := $(call findsource,$(lib_cn))
 lib_cn_obj := $(call findobj,$(lib_cn_source));
 #all lib
+lib_dir := $(lib_sc) $(lib_io) $(lib_cn)
 lib_source := $(lib_sc_source) $(lib_io_source) $(lib_cn_source)
 lib_obj := $(lib_sc_obj) $(lib_io_obj) $(lib_cn_obj)
-#
-$(lib_io_obj) :
-$(bin_folder)/%.o : %.c
-	mkdir -p $(dir $@)
+# liball.a:
+#$(lib_io_obj) :
+liball.a : $(lib_obj)
+	@$(AR) $(ARFLAGS) $@ $?
+##################################################################
+
+##################################################################
+app_source := $(wildcard */*/*.c)
+app_bnr_source := $(call findsource,$(app_bnr))
+app_bnr_obj := $(call findobj,$(app_bnr_source))
+app_bnr : $(app_bnr_obj) liball.a 
+	$(LINK.o) $^ -o $@
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $^ -o $@
 ##################################################################
 
-##################################################################
-app_bnr := app/bipartite_network_recommender
-app_bnr_source := $(call findsource,$(app_bnr))
-app_bnr_obj := $(call findobj,$(app_bnr_source))
-##################################################################
+headers := -I $(lib_dir)
+$(bin_folder)/%.o : %.c
+	mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(headers) -c $^ -o $@
 
-all:
-	@echo $(lib_sc_source)
-	@echo $(lib_sc_obj)
-	@echo $(lib_source)
-	@echo $(lib_obj)
+all: liball.a
 
 biprecommd := app/bipartite_network_recommender
 
