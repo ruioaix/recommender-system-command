@@ -5,10 +5,10 @@
 #include <getopt.h>
 #include <string.h>
 
-#include "mtprand.h"
-#include "linefile.h"
-#include "bip.h"
-#include "base.h"
+#include "sc_mtprand.h"
+#include "io_linefile.h"
+#include "cn_bip.h"
+#include "sc_verbose.h"
 
 struct OptionArgs {
 	int calculate_mass;

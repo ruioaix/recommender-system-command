@@ -1,10 +1,15 @@
+.PHONY: all clean first
 all: 
 
-.PHONY: all clean
-
+## variables and functions #######################################
+RM := rm -rf
+CC := gcc-4.9
 bin_folder := bin
 findsource = $(wildcard $(1)/*.c)
 findobj = $(patsubst %.c,$(bin_folder)/%.o,$(1))
+app_sources := $(wildcard app/*/*.c)
+app_outpout := $(basename $(app_sources))
+##################################################################
 
 
 ## librui.a ######################################################
@@ -29,42 +34,23 @@ $(bin_folder)/%.d: %.c
 
 
 ## .o compiled from .c ##########################################
+CPPFLAGS += -I$(lib_folder)
+%.o : %.c
 $(bin_folder)/%.o : %.c
 	@mkdir -p $(dir $@)
 	$(COMPILE.c) $(OUTPUT_OPTION) $<
 ##################################################################
 
+## x compiled from x.o and libs ##################################
+apps := $(patsubst %.c,$(bin_folder)/%,$(wildcard app/*/*.c))
+$(apps) : % : %.o $(lib_archive)
+	@mkdir -p $(dir $@)
+	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
+##################################################################
 
 ## clean #########################################################
 clean:
-	$(RM) -rf $(bin_folder)
+	$(RM) $(bin_folder)
 ##################################################################
 
-
-##################################################################
-app_source := $(wildcard */*/*.c)
-app_bnr_source := $(call findsource,$(app_bnr))
-app_bnr_obj := $(call findobj,$(app_bnr_source))
-app_bnr : $(app_bnr_obj) librui.a 
-	$(LINK.o) $^ -o $@
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c $^ -o $@
-##################################################################
-
-headers := -I $(lib_dir)
-
-all: $(lib_archive)
-
-biprecommd := app/bipartite_network_recommender
-
-
-
-
-all: $(biprecommd)
-
-$(player): $(libraries)
-
-$(lib_io): $(lib_sc)
-
-$(lib_cn): $(lib_io)
-
-
+all: $(apps)
