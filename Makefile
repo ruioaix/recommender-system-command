@@ -1,5 +1,5 @@
-.PHONY: all clean first
-all: 
+.PHONY: all clean first 
+all:
 
 ## variables and functions #######################################
 RM := rm -rf
@@ -7,8 +7,6 @@ CC := gcc-4.9
 bin_folder := bin
 findsource = $(wildcard $(1)/*.c)
 findobj = $(patsubst %.c,$(bin_folder)/%.o,$(1))
-app_sources := $(wildcard app/*/*.c)
-app_outpout := $(basename $(app_sources))
 ##################################################################
 
 
@@ -22,31 +20,50 @@ $(lib_archive) : $(lib_objects)
 ##################################################################
 
 
+## app ###########################################################
+app_folder := app
+app_sources := $(wildcard $(app_folder)/*/*.c)
+apps := $(patsubst %.c,$(bin_folder)/%,$(app_sources))
+##################################################################
+
+
+## all ###########################################################
+all_sources := $(lib_sources) $(app_sources)
+all_objects := $(lib_objects) $(lib_archive) $(apps)
+all_folders_in_bin := $(sort $(dir $(all_objects)))
+##################################################################
+
+
+## make sure directory is existed#################################
+makesuredir := $(shell mkdir -p $(all_folders_in_bin))
+##################################################################
+
+
 ## automatic prerequisites #######################################
-include $(patsubst %.c,$(bin_folder)/%.d,$(lib_sources))
+autodependence := $(patsubst %.c,$(bin_folder)/%.d,$(all_sources))
+ifneq "$(MAKECMDGOALS)" "clean"
+	include $(autodependence)
+endif
 $(bin_folder)/%.d: %.c
-	@mkdir -p $(dir $@)
-	@set -e; rm -f $@; \
-	$(CC) -M $(CPPFLAGS) $< > $@.$$$$; \
-	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
-	rm -f $@.$$$$
+	set -e; rm -f $@; \
+		$(CC) -M $(CPPFLAGS) $< > $@.$$$$; \
+		sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+		rm -f $@.$$$$
 ##################################################################
 
 
 ## .o compiled from .c ##########################################
 CPPFLAGS += -I$(lib_folder)
-%.o : %.c
 $(bin_folder)/%.o : %.c
-	@mkdir -p $(dir $@)
 	$(COMPILE.c) $(OUTPUT_OPTION) $<
 ##################################################################
 
+
 ## x compiled from x.o and libs ##################################
-apps := $(patsubst %.c,$(bin_folder)/%,$(wildcard app/*/*.c))
 $(apps) : % : %.o $(lib_archive)
-	@mkdir -p $(dir $@)
 	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
 ##################################################################
+
 
 ## clean #########################################################
 clean:
