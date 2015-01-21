@@ -1,7 +1,7 @@
-#include "iidnet.h"
-#include "base.h"
-#include "mtprand.h"
-#include "sort.h"
+#include "cn_iidnet.h"
+#include "sc_verbose.h"
+#include "sc_mtprand.h"
+#include "sc_sort.h"
 #include <math.h>
 #include <stdlib.h>
 #include <assert.h>

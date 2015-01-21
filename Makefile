@@ -1,52 +1,63 @@
 all: 
 
-bin_folder := bin
+.PHONY: all clean
 
+bin_folder := bin
 findsource = $(wildcard $(1)/*.c)
 findobj = $(patsubst %.c,$(bin_folder)/%.o,$(1))
 
-##################################################################
-#lib sc
-lib_sc := lib/self_contained
-lib_sc_source := $(call findsource,$(lib_sc))
-lib_sc_obj := $(call findobj,$(lib_sc_source))
-#lib io
-lib_io := lib/io
-lib_io_source := $(call findsource,$(lib_io))
-lib_io_obj := $(call findobj,$(lib_io_source))
-#lib cn
-lib_cn := lib/complex_network
-lib_cn_source := $(call findsource,$(lib_cn))
-lib_cn_obj := $(call findobj,$(lib_cn_source));
-#all lib
-lib_dir := $(lib_sc) $(lib_io) $(lib_cn)
-lib_source := $(lib_sc_source) $(lib_io_source) $(lib_cn_source)
-lib_obj := $(lib_sc_obj) $(lib_io_obj) $(lib_cn_obj)
-# liball.a:
-#$(lib_io_obj) :
-liball.a : $(lib_obj)
+
+## librui.a ######################################################
+lib_folder := lib
+lib_sources := $(call findsource,$(lib_folder))
+lib_objects := $(call findobj,$(lib_sources))
+lib_archive := $(bin_folder)/$(lib_folder)/librui.a
+$(lib_archive) : $(lib_objects)
 	@$(AR) $(ARFLAGS) $@ $?
 ##################################################################
+
+
+## automatic prerequisites #######################################
+include $(patsubst %.c,$(bin_folder)/%.d,$(lib_sources))
+$(bin_folder)/%.d: %.c
+	@mkdir -p $(dir $@)
+	@set -e; rm -f $@; \
+	$(CC) -M $(CPPFLAGS) $< > $@.$$$$; \
+	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$
+##################################################################
+
+
+## .o compiled from .c ##########################################
+$(bin_folder)/%.o : %.c
+	@mkdir -p $(dir $@)
+	$(COMPILE.c) $(OUTPUT_OPTION) $<
+##################################################################
+
+
+## clean #########################################################
+clean:
+	$(RM) -rf $(bin_folder)
+##################################################################
+
 
 ##################################################################
 app_source := $(wildcard */*/*.c)
 app_bnr_source := $(call findsource,$(app_bnr))
 app_bnr_obj := $(call findobj,$(app_bnr_source))
-app_bnr : $(app_bnr_obj) liball.a 
+app_bnr : $(app_bnr_obj) librui.a 
 	$(LINK.o) $^ -o $@
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $^ -o $@
 ##################################################################
 
 headers := -I $(lib_dir)
-$(bin_folder)/%.o : %.c
-	mkdir -p $(dir $@)
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(headers) -c $^ -o $@
 
-all: liball.a
+all: $(lib_archive)
 
 biprecommd := app/bipartite_network_recommender
 
-.PHONY: all $(libraries) $(biprecommd)
+
+
 
 all: $(biprecommd)
 
@@ -56,10 +67,4 @@ $(lib_io): $(lib_sc)
 
 $(lib_cn): $(lib_io)
 
-$(bin_folder)/%.d: %.c
-	@set -e; rm -f $@; \
-	$(CC) -M $(CPPFLAGS) $< > $@.$$$$; \
-	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
-	rm -f $@.$$$$
 
-#include $(patsubst %.c,bin/%.d,$(lib_source))

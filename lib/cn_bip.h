@@ -19,8 +19,8 @@
 #ifndef RSC_BIP_H
 #define RSC_BIP_H
 
-#include "linefile.h"
-#include "iidnet.h"
+#include "io_linefile.h"
+#include "cn_iidnet.h"
 
 //this struct is just one way for describing Bipartite.
 //other ways like (int ***xx) is also usefully.

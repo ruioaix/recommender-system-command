@@ -1,5 +1,5 @@
-#include "base.h"
-#include "linefile.h"
+#include "sc_verbose.h"
+#include "io_linefile.h"
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
