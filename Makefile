@@ -5,6 +5,7 @@ all:
 ## variables and functions #######################################
 RM := rm -rf
 CC := gcc-4.9
+CFLAGS += -Wall -g
 CPPFLAGS += -I$(lib_folder)
 bin_folder := bin
 findsource = $(wildcard $(1)/*.c)
