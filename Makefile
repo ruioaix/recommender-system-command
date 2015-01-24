@@ -1,9 +1,11 @@
-.PHONY: all clean first 
+.PHONY: all clean help
+#no PHONY targets: $(lib_archive), $(bin_folder)/%.d, $(bin_folder)/%.o, $(apps)
 all:
 
 ## variables and functions #######################################
 RM := rm -rf
 CC := gcc-4.9
+CPPFLAGS += -I$(lib_folder)
 bin_folder := bin
 findsource = $(wildcard $(1)/*.c)
 findobj = $(patsubst %.c,$(bin_folder)/%.o,$(1))
@@ -16,7 +18,7 @@ lib_sources := $(call findsource,$(lib_folder))
 lib_objects := $(call findobj,$(lib_sources))
 lib_archive := $(bin_folder)/$(lib_folder)/librui.a
 $(lib_archive) : $(lib_objects)
-	@$(AR) $(ARFLAGS) $@ $?
+	$(AR) $(ARFLAGS) $@ $?
 ##################################################################
 
 
@@ -39,7 +41,7 @@ makesuredir := $(shell mkdir -p $(all_folders_in_bin))
 ##################################################################
 
 
-## automatic prerequisites #######################################
+## automatic prerequisites (working for both lib and app) ########
 autodependence := $(patsubst %.c,$(bin_folder)/%.d,$(all_sources))
 ifneq "$(MAKECMDGOALS)" "clean"
 	include $(autodependence)
@@ -52,22 +54,29 @@ $(bin_folder)/%.d: %.c
 ##################################################################
 
 
-## .o compiled from .c ##########################################
-CPPFLAGS += -I$(lib_folder)
-$(bin_folder)/%.o : %.c
+## .o compiled from .c  (working for both lib and app) ###########
+$(bin_folder)/%.o : %.c 
 	$(COMPILE.c) $(OUTPUT_OPTION) $<
 ##################################################################
 
 
 ## x compiled from x.o and libs ##################################
-$(apps) : % : %.o $(lib_archive)
+% : %.o $(lib_archive)
 	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
+	@cp -v $@ $(subst /,-,$@)
 ##################################################################
 
 
 ## clean #########################################################
-clean:
-	$(RM) $(bin_folder)
+clean :
+	@$(RM) $(bin_folder)
+	@$(RM) bin-*
+##################################################################
+
+
+## help #########################################################
+help :
+#$(MAKE) --print-data-base --question no-such-target | grep -v -e '^no-such-target' -e '^makefile' | awk '/^[^.%][-A-Za-z0-9_]*:/ { print substr($$1, 1, length($$1)-1) }' | sort | pr --omit-pagination --width=80 --columns=4
 ##################################################################
 
 all: $(apps)

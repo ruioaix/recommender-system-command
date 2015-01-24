@@ -19,6 +19,7 @@ struct OptionArgs {
 	int calculate_UCF;
 	int calculate_ICF;
 	int calculate_SVD;
+
 	char *user_extra_att;
 	char *total_filename;
 	char *train_filename;
@@ -45,6 +46,7 @@ static void display_usage(void) {
 	puts("-F: using ICF");
 	puts("-S: using SVD");
 	puts("-u: users extra attribute");
+
 	puts("-i: full dataset filename");
 	puts("-T: train dataset filename");
 	puts("-t: test dataset filename");
@@ -56,7 +58,6 @@ static void display_usage(void) {
 	puts("-K: K");
 
 	puts("-?: help information");
-	exit(EXIT_FAILURE);
 }
 
 static void verify_OptionArgs(struct OptionArgs *OptionArgs);

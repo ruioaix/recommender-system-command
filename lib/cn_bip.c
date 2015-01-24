@@ -12,6 +12,31 @@
 /*********************************************************************/
 /***operation on struct Bip*******************************************/
 /*********************************************************************/
+static struct Bip *init_Bip(void) {
+	struct Bip *bip = smalloc(sizeof(struct Bip));
+	//baisc
+	bip->edgesNum = 0;
+	bip->maxId = 0;
+	bip->minId = 0;
+	bip->idNum = 0;
+	bip->degreeMax = 0;
+	bip->degreeMin = 0;
+	bip->degree = NULL;
+	bip->edges = NULL;
+
+	//additional
+	int i;
+	for (i = 0; i < CA_METRICS_BIP; ++i) {
+		bip->att1[i] = 0;
+		bip->att2[i] = 0;
+	}
+	bip->attI1 = NULL;
+	bip->attI2 = NULL;
+	bip->attD1 = NULL;
+	bip->edgesI = NULL;
+	bip->edgesD = NULL;
+}
+
 static void set_maxId_minId_create_Bip(int *i1, int *i2, long edgesNum, int index, int *maxId, int *minId) {
 	//set minId&maxId.
 	long i;
@@ -47,15 +72,19 @@ static int *set_degree_create_Bip(int *i1, int *i2, int maxId, long edgesNum, in
 	return degree;
 }
 
-static void prepare_edges_attr_and_set_degreeMaxMin_idNum_create_Bip(int *i3, int maxId, int *degree, int *idNum_retn, int *degreeMax_retn, int *degreeMin_retn, int ***edges_retn, int ***score_retn) {
+static void prepare_edges_attr_and_set_degreeMaxMin_idNum_create_Bip(int *i3, double *d1, int maxId, int *degree, int *idNum_retn, int *degreeMax_retn, int *degreeMin_retn, int ***edges_retn, int ***edgesI_retn, double ***edgesD_retn) {
 	int **edges = smalloc((maxId+1)*sizeof(void *));
-	int **score = NULL;
+	int **edgesI = NULL;
+	double **edgesD = NULL;
 	int degreeMax = -1;
 	int degreeMin = INT_MAX;
 	int idNum = 0;
 	
 	if (i3 != NULL) {
-		score = smalloc((maxId+1)*sizeof(void *));
+		edgesI = smalloc((maxId + 1) * sizeof(int *));
+	}
+	if (d1 != NULL) {
+		edgesD = smalloc((maxId + 1) * sizeof(double *));
 	}
 	int j;
 	for(j=0; j<maxId+1; ++j) {
@@ -72,31 +101,58 @@ static void prepare_edges_attr_and_set_degreeMaxMin_idNum_create_Bip(int *i3, in
 	if (i3 != NULL) {
 		for(j=0; j<maxId+1; ++j) {
 			if (degree[j]>0) {
-				score[j]=smalloc(degree[j]*sizeof(int));
+				edgesI[j]=smalloc(degree[j]*sizeof(int));
 			}
 			else {
-				score[j] = NULL;
+				edgesI[j] = NULL;
+			}
+		}
+	}
+	if (d1 != NULL) {
+		for (j = 0; j < maxId + 1; ++j) {
+			if (degree[j] > 0) {
+				edgesD[j] = smalloc(degree[j] * sizeof(double));	
+			}
+			else {
+				edgesD[j] = NULL;
 			}
 		}
 	}
 	*degreeMax_retn = degreeMax;
 	*degreeMin_retn = degreeMin;
 	*edges_retn = edges;
-	*score_retn = score;
+	*edgesI_retn = edgesI;
+	*edgesD_retn = edgesD;
 	*idNum_retn = idNum;
 }
 
-static void set_edges_attr_create_Bip(int *i1, int *i2, int *i3, int maxId, int index, long edgesNum, int ***edges, int ***score) {
+static void set_edges_attr_create_Bip(int *i1, int *i2, int *i3, double *d1, int maxId, int index, long edgesNum, int ***edges, int ***edgesI, double ***edgesD) {
 	//fill edges
-	
 	long i;
 	int *temp = scalloc(maxId+1, sizeof(int));
 	if (1 == index) {
-		if (i3 != NULL) {
+		if (i3 != NULL && d1 != NULL) {
 			for(i=0; i<edgesNum; ++i) {
 				int ii1 =i1[i];
 				(*edges)[ii1][temp[ii1]]=i2[i];
-				(*score)[ii1][temp[ii1]] = i3[i];
+				(*edgesI)[ii1][temp[ii1]] = i3[i];
+				(*edgesD)[ii1][temp[ii1]] = d1[i];
+				++temp[ii1];
+			}
+		}
+		else if (i3 != NULL) {
+			for(i=0; i<edgesNum; ++i) {
+				int ii1 =i1[i];
+				(*edges)[ii1][temp[ii1]]=i2[i];
+				(*edgesI)[ii1][temp[ii1]] = i3[i];
+				++temp[ii1];
+			}
+		}
+		else if (d1 != NULL) {
+			for(i=0; i<edgesNum; ++i) {
+				int ii1 =i1[i];
+				(*edges)[ii1][temp[ii1]]=i2[i];
+				(*edgesD)[ii1][temp[ii1]] = d1[i];
 				++temp[ii1];
 			}
 		}
@@ -109,11 +165,28 @@ static void set_edges_attr_create_Bip(int *i1, int *i2, int *i3, int maxId, int 
 		}
 	}
 	else {
-		if (i3 != NULL) {
+		if (i3 != NULL && d1 != NULL) {
 			for(i=0; i<edgesNum; ++i) {
 				int ii2 =i2[i];
 				(*edges)[ii2][temp[ii2]]=i1[i];
-				(*score)[ii2][temp[ii2]] = i3[i];
+				(*edgesI)[ii2][temp[ii2]] = i3[i];
+				(*edgesD)[ii2][temp[ii2]] = d1[i];
+				++temp[ii2];
+			}
+		}
+		else if (i3 != NULL) {
+			for(i=0; i<edgesNum; ++i) {
+				int ii2 =i2[i];
+				(*edges)[ii2][temp[ii2]]=i1[i];
+				(*edgesI)[ii2][temp[ii2]] = i3[i];
+				++temp[ii2];
+			}
+		}
+		else if (d1 != NULL) {
+			for(i=0; i<edgesNum; ++i) {
+				int ii2 =i2[i];
+				(*edges)[ii2][temp[ii2]]=i1[i];
+				(*edgesD)[ii2][temp[ii2]] = d1[i];
 				++temp[ii2];
 			}
 		}
@@ -132,19 +205,25 @@ static void set_edges_attr_create_Bip(int *i1, int *i2, int *i3, int maxId, int 
 //index is 1, i1 of struct LineFile will be the index.
 //index is 2, i2 of struct LineFile will be the index.
 struct Bip *create_Bip(const struct LineFile * const lf, int index) {
-	if (lf == NULL || lf->i1 == NULL || lf->i2 == NULL || lf->linesNum < 1) isError("create_Bip lf");
-	if (index != 1 && index != 2) isError("create_Bip index");
+	if (lf == NULL || lf->i1 == NULL || lf->i2 == NULL || lf->linesNum < 1) isError("create_Bip lf: %p, lf->i1: %p, lf->i2: %p, lf->linesNum: %ld", lf, lf->i1, lf->i2, lf->linesNum);
+	if (index != 1 && index != 2) isError("create_Bip index: %d", index);
+
 	int *i1 = lf->i1;
 	int *i2 = lf->i2;
-	int *i3 = lf->i3;
 
-	struct Bip *Bip = smalloc(sizeof(struct Bip));
+	struct Bip *Bip = init_Bip();
+	//set edgesNum
 	Bip->edgesNum = lf->linesNum;
+	//set maxId minId
 	set_maxId_minId_create_Bip(i1, i2, lf->linesNum, index, &(Bip->maxId), &(Bip->minId));
+	//set degree
 	Bip->degree = set_degree_create_Bip(i1, i2, Bip->maxId, lf->linesNum, index);
-	prepare_edges_attr_and_set_degreeMaxMin_idNum_create_Bip(i3, Bip->maxId, Bip->degree, &(Bip->idNum), &(Bip->degreeMax), &(Bip->degreeMin), &(Bip->edges), &(Bip->score));
-	set_edges_attr_create_Bip(i1, i2, i3, Bip->maxId, index, lf->linesNum, &(Bip->edges), &(Bip->score));	
+	//set idNum, degreeMax, degreeMin
+	prepare_edges_attr_and_set_degreeMaxMin_idNum_create_Bip(lf->i3, lf->d1, Bip->maxId, Bip->degree, &(Bip->idNum), &(Bip->degreeMax), &(Bip->degreeMin), &(Bip->edges), &(Bip->edgesI), &(Bip->edgesD));
+	//set edges, edgesI, edgesD
+	set_edges_attr_create_Bip(i1, i2, lf->i3, lf->d1, Bip->maxId, index, lf->linesNum, &(Bip->edges), &(Bip->edgesI), &(Bip->edgesD));	
 
+	//remain attI1, attI2, attD1, att1, att2; 
 	printgf("file:%s, index:%d, Max: %5d, Min: %5d, Num: %5d, degreeMax: %5d, degreeMin: %5d, edgesNum: %5ld", \
 			lf->filename, index, Bip->maxId, Bip->minId, Bip->idNum, Bip->degreeMax, Bip->degreeMin, Bip->edgesNum);
 
@@ -153,10 +232,24 @@ struct Bip *create_Bip(const struct LineFile * const lf, int index) {
 
 void sort_desc_by_edges_Bip(struct Bip *bip) {
 	int i;
-	if (bip->score != NULL) {
+	if (bip->edgesI != NULL && bip->edgesD != NULL) {
 		for (i = 0; i < bip->maxId + 1; ++i) {
 			if (bip->degree[i]) {
-				qsort_ii_desc(bip->edges[i], 0, bip->degree[i] - 1, bip->score[i]);
+				qsort_iid_desc(bip->edges[i], 0, bip->degree[i] - 1, bip->edgesI[i], bip->edgesD[i]);
+			}
+		}
+	}
+	else if (bip->edgesI != NULL) {
+		for (i = 0; i < bip->maxId + 1; ++i) {
+			if (bip->degree[i]) {
+				qsort_ii_desc(bip->edges[i], 0, bip->degree[i] - 1, bip->edgesI[i]);
+			}
+		}
+	}
+	else if (bip->edgesD != NULL) {
+		for (i = 0; i < bip->maxId + 1; ++i) {
+			if (bip->degree[i]) {
+				qsort_id_desc(bip->edges[i], 0, bip->degree[i] - 1, bip->edgesD[i]);
 			}
 		}
 	}
@@ -174,40 +267,100 @@ void free_Bip(struct Bip *bip) {
 	int i=0;
 	for(i=0; i<bip->maxId+1; ++i) {
 		free(bip->edges[i]);
-		if (bip->score != NULL) {
-			free(bip->score[i]);
+		if (bip->edgesI != NULL) {
+			free(bip->edgesI[i]);
+		}
+		if (bip->edgesD != NULL) {
+			free(bip->edgesD[i]);
 		}
 	}
 	free(bip->degree);
+	free(bip->attI1);
+	free(bip->attI2);
+	free(bip->attD1);
 	free(bip->edges);
-	free(bip->score);
+	free(bip->edgesI);
+	free(bip->edgesD);
 	free(bip);
 	printgf("done.");
 }
 
 struct Bip * clone_Bip(struct Bip *bip) {
 	struct Bip *new = smalloc(sizeof(struct Bip));
-	new->degree = smalloc((bip->maxId + 1)*sizeof(int));
-	memcpy(new->degree, bip->degree, (bip->maxId + 1)*sizeof(int));
-	new->edges = smalloc((bip->maxId + 1)*sizeof(void *));
+	new->degree = smalloc((bip->maxId + 1) * sizeof(int));
+	memcpy(new->degree, bip->degree, (bip->maxId + 1) * sizeof(int));
+
+	if (bip->attI1 != NULL) {
+		memcpy(new->attI1, bip->attI1, (bip->maxId + 1) * sizeof(int));
+	}
+	if (bip->attI2 != NULL) {
+		memcpy(new->attI2, bip->attI2, (bip->maxId + 1) * sizeof(int));
+	}
+	if (bip->attD1 != NULL) {
+		memcpy(new->attD1, bip->attD1, (bip->maxId + 1) * sizeof(double));
+	}
+
 	int i;
-	if (bip->score != NULL) {
-		new->score = smalloc((bip->maxId + 1)*sizeof(void *));
+	for (i = 0; i < CA_METRICS_BIP; ++i) {
+		new->att1[i] = bip->att1[i];
+		new->att2[i] = bip->att2[i];
+	}
+
+	new->edges = smalloc((bip->maxId + 1) * sizeof(int *));
+	if (bip->edgesI != NULL && bip->edgesD != NULL) {
+		new->edgesI = smalloc((bip->maxId + 1)*sizeof(int *));
+		new->edgesD = smalloc((bip->maxId + 1)*sizeof(double *));
 		for (i = 0; i < bip->maxId + 1; ++i) {
 			if (new->degree[i]) {
 				new->edges[i] = smalloc(new->degree[i]*sizeof(int));
 				memcpy(new->edges[i], bip->edges[i], new->degree[i]*sizeof(int));
-				new->score[i] = smalloc(new->degree[i]*sizeof(int));
-				memcpy(new->score[i], bip->score[i], new->degree[i]*sizeof(int));
+				new->edgesI[i] = smalloc(new->degree[i]*sizeof(int));
+				memcpy(new->edgesI[i], bip->edgesI[i], new->degree[i]*sizeof(int));
+				new->edgesD[i] = smalloc(new->degree[i]*sizeof(double));
+				memcpy(new->edgesD[i], bip->edgesD[i], new->degree[i]*sizeof(double));
 			}
 			else {
 				new->edges[i] = NULL;
-				new->score[i] = NULL;
+				new->edgesI[i] = NULL;
+				new->edgesD[i] = NULL;
+			}
+		}
+	}
+	else if (bip->edgesI != NULL) {
+		new->edgesI = smalloc((bip->maxId + 1)*sizeof(int *));
+		new->edgesD = NULL;
+		for (i = 0; i < bip->maxId + 1; ++i) {
+			if (new->degree[i]) {
+				new->edges[i] = smalloc(new->degree[i]*sizeof(int));
+				memcpy(new->edges[i], bip->edges[i], new->degree[i]*sizeof(int));
+				new->edgesI[i] = smalloc(new->degree[i]*sizeof(int));
+				memcpy(new->edgesI[i], bip->edgesI[i], new->degree[i]*sizeof(int));
+			}
+			else {
+				new->edges[i] = NULL;
+				new->edgesI[i] = NULL;
+			}
+		}
+	}
+	else if (bip->edgesD != NULL) {
+		new->edgesI = NULL;
+		new->edgesD = smalloc((bip->maxId + 1)*sizeof(double *));
+		for (i = 0; i < bip->maxId + 1; ++i) {
+			if (new->degree[i]) {
+				new->edges[i] = smalloc(new->degree[i]*sizeof(int));
+				memcpy(new->edges[i], bip->edges[i], new->degree[i]*sizeof(int));
+				new->edgesD[i] = smalloc(new->degree[i]*sizeof(double));
+				memcpy(new->edgesD[i], bip->edgesD[i], new->degree[i]*sizeof(double));
+			}
+			else {
+				new->edges[i] = NULL;
+				new->edgesD[i] = NULL;
 			}
 		}
 	}
 	else {
-		new->score = NULL;
+		new->edgesI = NULL;
+		new->edgesD = NULL;
 		for (i=0; i<bip->maxId +1 ; ++i) {
 			if (new->degree[i]) {
 				new->edges[i] = smalloc(new->degree[i]*sizeof(int));
@@ -273,12 +426,13 @@ void print_Bip(struct Bip *bip, char *filename) {
 	for (i = 0; i < bip->maxId + 1; ++i) {
 		for (j = 0; j < bip->degree[i]; ++j) {
 			fprintf(fp, "%d\t%d", i, bip->edges[i][j]);
-			if (bip->score != NULL) {
-				fprintf(fp, "\t%d\n", bip->score[i][j]);
+			if (bip->edgesI != NULL) {
+				fprintf(fp, "\t%d", bip->edgesI[i][j]);
 			}
-			else {
-				fprintf(fp, "\n");
+			if (bip->edgesD != NULL) {
+				fprintf(fp, "\t%f", bip->edgesD[i][j]);
 			}
+			fprintf(fp, "\n");
 		}
 	}
 	fclose(fp);
@@ -312,9 +466,13 @@ void divide_Bip(struct Bip *bipi1, struct Bip *bipi2, double rate, struct LineFi
 	(*big)->i1 = smalloc(l2*sizeof(int));
 	(*big)->i2 = smalloc(l2*sizeof(int));
 	
-	if (bipi1->score != NULL) {
+	if (bipi1->edgesI != NULL) {
 		(*small)->i3 = smalloc(l1*sizeof(int));
 		(*big)->i3 = smalloc(l2*sizeof(int));
+	}
+	if (bipi1->edgesD != NULL) {
+		(*small)->d1 = smalloc(l1 * sizeof(double));
+		(*big)->d1 = smalloc(l2 * sizeof(double));
 	}
 
 	long line1=0, line2=0;
@@ -335,8 +493,11 @@ void divide_Bip(struct Bip *bipi1, struct Bip *bipi2, double rate, struct LineFi
 				if ((degreei1[i] == 1 && i1sign[i] == 0) || (degreei2[neigh] == 1 && i2sign[neigh] == 0)) {
 					(*big)->i1[line2] = i;	
 					(*big)->i2[line2] = neigh;	
-					if (bipi1->score != NULL) {
-						(*big)->i3[line2] = bipi1->score[i][j];
+					if (bipi1->edgesI != NULL) {
+						(*big)->i3[line2] = bipi1->edgesI[i][j];
+					}
+					if (bipi1->edgesD != NULL) {
+						(*big)->d1[line2] = bipi1->edgesD[i][j];
 					}
 					--degreei1[i];
 					--degreei2[neigh];
@@ -347,8 +508,11 @@ void divide_Bip(struct Bip *bipi1, struct Bip *bipi2, double rate, struct LineFi
 				}
 				(*small)->i1[line1] = i;	
 				(*small)->i2[line1] = neigh;	
-				if (bipi1->score != NULL) {
-					(*small)->i3[line1] = bipi1->score[i][j];
+				if (bipi1->edgesI != NULL) {
+					(*small)->i3[line1] = bipi1->edgesI[i][j];
+				}
+				if (bipi1->edgesD != NULL) {
+					(*small)->d1[line1] = bipi1->edgesD[i][j];
 				}
 				--degreei1[i];
 				--degreei2[neigh];
@@ -357,8 +521,11 @@ void divide_Bip(struct Bip *bipi1, struct Bip *bipi2, double rate, struct LineFi
 			else {
 				(*big)->i1[line2] = i;	
 				(*big)->i2[line2] = neigh;	
-				if (bipi1->score != NULL) {
-					(*big)->i3[line2] = bipi1->score[i][j];
+				if (bipi1->edgesI != NULL) {
+					(*big)->i3[line2] = bipi1->edgesI[i][j];
+				}
+				if (bipi1->edgesD != NULL) {
+					(*big)->d1[line2] = bipi1->edgesD[i][j];
 				}
 				i1sign[i] = 1;
 				i2sign[neigh] = 1;
@@ -471,24 +638,24 @@ struct LineFile *cosine_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, int
 
 struct LineFile *pearson_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, int target) {
 	if (target != 1 && target != 2) isError("target should be 1 or 2");
-	if (bipi1->score == NULL) isError("pearson similarity need score");
+	if (bipi1->edgesI == NULL) isError("pearson similarity need edgesI");
 	int idmax, idmax2;
 	int *degree;
 	int **edges;
-	int **score;
+	int **edgesI;
 	if (target == 1) {
 		idmax = bipi1->maxId;
 		idmax2 = bipi2->maxId;
 		degree = bipi1->degree;
 		edges = bipi1->edges;
-		score = bipi1->score;
+		edgesI = bipi1->edgesI;
 	}
 	else {
 		idmax = bipi2->maxId;
 		idmax2 = bipi1->maxId;
 		degree = bipi2->degree;
 		edges = bipi2->edges;
-		score = bipi2->score;
+		edgesI = bipi2->edgesI;
 	}
 
 	int *sign = scalloc((idmax2 + 1),sizeof(int));
@@ -508,7 +675,7 @@ struct LineFile *pearson_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, in
 		if (degree[i]) {
 			memset(sign, 0, (idmax2 + 1)*sizeof(int));
 			for (k=0; k<degree[i]; ++k) {
-				sign[edges[i][k]] = score[i][k];
+				sign[edges[i][k]] = edgesI[i][k];
 			}
 			for (j = i+1; j<idmax + 1; ++j) {
 				if (degree[j]) {
@@ -519,7 +686,7 @@ struct LineFile *pearson_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, in
 					int com = 0;
 					for (k=0; k<degree[j]; ++k) {
 						int scorei = sign[edges[j][k]];
-						int scorej = score[j][k];
+						int scorej = edgesI[j][k];
 						if (scorei && scorej) {
 							com++;
 							sumx += scorei;
@@ -1161,7 +1328,7 @@ static void UCF_recommend_Bip(struct Bip_recommend_param *args) {
 	int i2maxId = args->traini2->maxId;
 	int *i1degree = args->traini1->degree;
 	int *i2degree = args->traini2->degree;
-	int **i2score = args->traini2->score;
+	int **i2score = args->traini2->edgesI;
 	int *i1id = args->i1id;
 	int *i2id = args->i2id;
 	double *psimM = args->psimM;
@@ -1385,8 +1552,8 @@ static void mass_score_recommend_Bip(struct Bip_recommend_param *args) {
 	double *i1sourceA = args->i1sourceA;
 	double *i2sourceA = args->i2sourceA;
 	
-	int **i1score = args->traini1->score;
-	int **i2score = args->traini2->score;
+	int **i1score = args->traini1->edgesI;
+	int **i2score = args->traini2->edgesI;
 	if (i1score == NULL || i2source == NULL) isError("mass_score_recommend_Bip");
 
 	int *i2id = args->i2id;
@@ -1465,7 +1632,7 @@ static void mass_scoret3step_recommend_Bip(struct Bip_recommend_param *args) {
 
 	double *i2sourceA = args->i2sourceA;
 	
-	int **i1score = args->traini1->score;
+	int **i1score = args->traini1->edgesI;
 	if (i1score == NULL) isError("mass_scoret3step_recommend_Bip");
 
 
@@ -1528,7 +1695,7 @@ static void mass_degree_recommend_Bip(struct Bip_recommend_param *args) {
 
 	double *i2sourceA = args->i2sourceA;
 	
-	int **score = args->traini1->score;
+	int **score = args->traini1->edgesI;
 	if (score == NULL) isError("mass_degree_recommend_Bip");
 
 
@@ -1667,7 +1834,7 @@ static struct Metrics_Bip *recommend_Bip(void (*recommend_core)(struct Bip_recom
 }
 
 
-struct Metrics_Bip *mass_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, struct User_ATT *ua, int L) {
+struct Metrics_Bip *mass_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, int L) {
 	struct Bip_recommend_param param;
 	param.itemSim = itemSim;
 
@@ -1675,12 +1842,14 @@ struct Metrics_Bip *mass_Bip(struct Bip *traini1, struct Bip *traini2, struct Bi
 	param.traini2 = traini2;
 	param.testi1 = testi1;
 
-	param.user_gender = ua->gender;
-	param.user_age = ua->age;
+	param.user_gender = traini1->attI1;
+	param.user_age = traini1->attI2;
 	int i;
 	for (i = 0; i < CA_METRICS_BIP; ++i) {
-		param.testset_node_num[i] = ua->testset_node_num[i];
-		param.testset_edge_num[i] = ua->testset_edge_num[i];
+		//param.testset_node_num[i] = ua->testset_node_num[i];
+		//param.testset_edge_num[i] = ua->testset_edge_num[i];
+		param.testset_node_num[i] = testi1->att1[i];
+		param.testset_edge_num[i] = testi1->att2[i];
 	}
 
 	param.L = L;
@@ -1688,7 +1857,7 @@ struct Metrics_Bip *mass_Bip(struct Bip *traini1, struct Bip *traini2, struct Bi
 	return recommend_Bip(mass_recommend_Bip, &param);
 }
 
-struct Metrics_Bip *heats_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, struct User_ATT *ua, int L) {
+struct Metrics_Bip *heats_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, int L) {
 	struct Bip_recommend_param param;
 	param.itemSim = itemSim;
 
@@ -1696,19 +1865,19 @@ struct Metrics_Bip *heats_Bip(struct Bip *traini1, struct Bip *traini2, struct B
 	param.traini2 = traini2;
 	param.testi1 = testi1;
 
-	param.user_gender = ua->gender;
-	param.user_age = ua->age;
+	param.user_gender = traini1->attI1;
+	param.user_age = traini1->attI2;
 	int i;
 	for (i = 0; i < CA_METRICS_BIP; ++i) {
-		param.testset_node_num[i] = ua->testset_node_num[i];
-		param.testset_edge_num[i] = ua->testset_edge_num[i];
+		param.testset_node_num[i] = testi1->att1[i];
+		param.testset_edge_num[i] = testi1->att2[i];
 	}
 	param.L = L;
 
 	return recommend_Bip(heats_recommend_Bip, &param);
 }
 
-struct Metrics_Bip *HNBI_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, double HNBI_param, struct User_ATT *ua, int L) {
+struct Metrics_Bip *HNBI_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, double HNBI_param, int L) {
 	struct Bip_recommend_param param;
 	param.itemSim = itemSim;
 	param.HNBI_param = HNBI_param;
@@ -1717,18 +1886,18 @@ struct Metrics_Bip *HNBI_Bip(struct Bip *traini1, struct Bip *traini2, struct Bi
 	param.traini2 = traini2;
 	param.testi1 = testi1;
 
-	param.user_gender = ua->gender;
-	param.user_age = ua->age;
+	param.user_gender = traini1->attI1;
+	param.user_age = traini1->attI2;
 	int i;
 	for (i = 0; i < CA_METRICS_BIP; ++i) {
-		param.testset_node_num[i] = ua->testset_node_num[i];
-		param.testset_edge_num[i] = ua->testset_edge_num[i];
+		param.testset_node_num[i] = testi1->att1[i];
+		param.testset_edge_num[i] = testi1->att2[i];
 	}
 	param.L = L;
 	return recommend_Bip(HNBI_recommend_Bip, &param);
 }
 
-struct Metrics_Bip *RENBI_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, double RENBI_param, struct User_ATT *ua, int L) {
+struct Metrics_Bip *RENBI_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, double RENBI_param, int L) {
 	struct Bip_recommend_param param;
 	param.itemSim = itemSim;
 	param.RENBI_param = RENBI_param;
@@ -1737,18 +1906,18 @@ struct Metrics_Bip *RENBI_Bip(struct Bip *traini1, struct Bip *traini2, struct B
 	param.traini2 = traini2;
 	param.testi1 = testi1;
 
-	param.user_gender = ua->gender;
-	param.user_age = ua->age;
+	param.user_gender = traini1->attI1;
+	param.user_age = traini1->attI2;
 	int i;
 	for (i = 0; i < CA_METRICS_BIP; ++i) {
-		param.testset_node_num[i] = ua->testset_node_num[i];
-		param.testset_edge_num[i] = ua->testset_edge_num[i];
+		param.testset_node_num[i] = testi1->att1[i];
+		param.testset_edge_num[i] = testi1->att2[i];
 	}
 	param.L = L;
 	return recommend_Bip(RENBI_recommend_Bip, &param);
 }
 
-struct Metrics_Bip *hybrid_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, double hybrid_param, struct User_ATT *ua, int L) {
+struct Metrics_Bip *hybrid_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *itemSim, double hybrid_param, int L) {
 	struct Bip_recommend_param param;
 	param.itemSim = itemSim;
 	param.hybrid_param = hybrid_param;
@@ -1757,12 +1926,12 @@ struct Metrics_Bip *hybrid_Bip(struct Bip *traini1, struct Bip *traini2, struct 
 	param.traini2 = traini2;
 	param.testi1 = testi1;
 
-	param.user_gender = ua->gender;
-	param.user_age = ua->age;
+	param.user_gender = traini1->attI1;
+	param.user_age = traini1->attI2;
 	int i;
 	for (i = 0; i < CA_METRICS_BIP; ++i) {
-		param.testset_node_num[i] = ua->testset_node_num[i];
-		param.testset_edge_num[i] = ua->testset_edge_num[i];
+		param.testset_node_num[i] = testi1->att1[i];
+		param.testset_edge_num[i] = testi1->att2[i];
 	}
 
 	param.L = L;
@@ -2014,7 +2183,7 @@ double *mass_degree_rank_Bip(struct Bip *traini1, struct Bip *traini2, double ma
 	return rank_Bip(mass_degree_recommend_Bip, &param);
 }
 
-struct Metrics_Bip *UCF_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainItemSim, double *psimM, struct User_ATT *ua, int L, int K) {
+struct Metrics_Bip *UCF_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainItemSim, double *psimM, int L, int K) {
 	print_time();
 	struct Bip_recommend_param param;
 	param.itemSim = trainItemSim;
@@ -2023,12 +2192,12 @@ struct Metrics_Bip *UCF_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip
 	param.traini2 = traini2;
 	param.testi1 = testi1;
 
-	param.user_gender = ua->gender;
-	param.user_age = ua->age;
+	param.user_gender = traini1->attI1;
+	param.user_age = traini1->attI2;
 	int i;
 	for (i = 0; i < CA_METRICS_BIP; ++i) {
-		param.testset_node_num[i] = ua->testset_node_num[i];
-		param.testset_edge_num[i] = ua->testset_edge_num[i];
+		param.testset_node_num[i] = testi1->att1[i];
+		param.testset_edge_num[i] = testi1->att2[i];
 	}
 
 	param.L = L;
@@ -2039,7 +2208,7 @@ struct Metrics_Bip *UCF_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip
 	return recommend_Bip(UCF_recommend_Bip, &param);
 }
 
-struct Metrics_Bip *ICF_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainItemSim, double *psimM, struct User_ATT *ua, int L, int K) {
+struct Metrics_Bip *ICF_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainItemSim, double *psimM, int L, int K) {
 	print_time();
 	struct Bip_recommend_param param;
 	param.itemSim = trainItemSim;
@@ -2048,12 +2217,14 @@ struct Metrics_Bip *ICF_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip
 	param.traini2 = traini2;
 	param.testi1 = testi1;
 
-	param.user_gender = ua->gender;
-	param.user_age = ua->age;
+	//param.user_gender = ua->gender;
+	//param.user_age = ua->age;
+	param.user_gender = traini1->attI1;
+	param.user_age = traini1->attI2;
 	int i;
 	for (i = 0; i < CA_METRICS_BIP; ++i) {
-		param.testset_node_num[i] = ua->testset_node_num[i];
-		param.testset_edge_num[i] = ua->testset_edge_num[i];
+		param.testset_node_num[i] = testi1->att1[i];
+		param.testset_edge_num[i] = testi1->att2[i];
 	}
 
 	param.L = L;
@@ -2064,6 +2235,6 @@ struct Metrics_Bip *ICF_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip
 	return recommend_Bip(ICF_recommend_Bip, &param);
 }
 
-struct Metrics_Bip *SVD_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainItemSim, double *rui, struct User_ATT *ua, int L) {
+struct Metrics_Bip *SVD_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainItemSim, double *rui, int L) {
 	return NULL;
 }

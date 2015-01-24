@@ -27,32 +27,41 @@
 //Bipartite contains two parts. e.g. user and item.
 //but here, create_Bip only create user Bipartite or item Bipartite.
 //if you want both, create two time with different index arg.
+#define CA_METRICS_BIP 10 
 struct Bip {
+	//Basic
+	long edgesNum;
 	int maxId;
 	int minId;
 	int idNum;
-	long edgesNum;
-
 	int degreeMax;
 	int degreeMin;
 	int *degree;
-
 	int **edges;
-	int **score;
+
+	//additional
+	int att1[CA_METRICS_BIP];
+	int att2[CA_METRICS_BIP];
+	int *attI1;
+	int *attI2;
+	double *attD1;
+	int **edgesI;
+	double **edgesD;
 };
 
 //if index is 1, means the i1 is the index, and i2 is the data saved into (int **edges).
 //i1 and i2 is the data in LineFile.
 //if index is 2, means i2 is the index.
 struct Bip *create_Bip(const struct LineFile * const file, int index);
-void sort_desc_by_edges_Bip(struct Bip *bip);
 void free_Bip(struct Bip *bip);
 struct Bip * clone_Bip(struct Bip *bip);
+void sort_desc_by_edges_Bip(struct Bip *bip);
+//make sure there is no duplicate lines.
 void verify_Bip(struct Bip *bipi1, struct Bip *bipi2);
 void print_Bip(struct Bip *bip, char *filename);
 
 //the dividation will guarantee that: 
-//	for each available user(degree of this user is at least one), at least there will be an edge related this item in big part.
+//	for each available user(degree of this user is at least one), at least there will be an edge related this user in big part.
 //	for each available item(degree of this item is at least one), at least there will be an edge related this item in big part.
 //so maybe some users/items are not existed in the small part.
 void divide_Bip(struct Bip *bipi1, struct Bip *bipi2, double rate, struct LineFile **small_part, struct LineFile **big_part);
@@ -63,7 +72,6 @@ void divide_Bip(struct Bip *bipi1, struct Bip *bipi2, double rate, struct LineFi
 struct LineFile *cosine_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, int target);
 struct LineFile *pearson_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, int target);
 
-#define CA_METRICS_BIP 10 
 struct Metrics_Bip {
 	double R[CA_METRICS_BIP];
 	double RL[CA_METRICS_BIP];
@@ -80,21 +88,12 @@ struct Metrics_Bip *create_MetricsBip(void);
 void clean_MetricsBip(struct Metrics_Bip *m);
 void free_MetricsBip(struct Metrics_Bip *m);
 
-//recommend methods
-struct User_ATT {
-	int *gender;
-	int *age;
-
-	int testset_node_num[CA_METRICS_BIP];
-	int testset_edge_num[CA_METRICS_BIP];
-};
-
 //normal
-struct Metrics_Bip *mass_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainItemSim, struct User_ATT *ua, int L);
-struct Metrics_Bip *heats_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainItemSim, struct User_ATT *ua, int L);
-struct Metrics_Bip *HNBI_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainItemSim, double HNBI_param, struct User_ATT *ua, int L);
-struct Metrics_Bip *RENBI_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainItemSim, double RENBI_param, struct User_ATT *ua, int L);
-struct Metrics_Bip *hybrid_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainItemSim, double hybrid_param, struct User_ATT *ua, int L);
+struct Metrics_Bip *mass_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainItemCosinSim, int L);
+struct Metrics_Bip *heats_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainItemCosinSim, int L);
+struct Metrics_Bip *HNBI_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainItemCosinSim, double HNBI_param, int L);
+struct Metrics_Bip *RENBI_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainItemCosinSim, double RENBI_param, int L);
+struct Metrics_Bip *hybrid_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainItemCosinSim, double hybrid_param, int L);
 
 //topk and highsimilarity
 int *mass_getBK_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *userSim, double rate);
@@ -112,10 +111,10 @@ double *mass_scoret3step_rank_Bip(struct Bip *traini1, struct Bip *traini2, doub
 double *mass_degree_rank_Bip(struct Bip *traini1, struct Bip *traini2, double mass_score);
 
 //CF 
-struct Metrics_Bip *UCF_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainItemSim, double *psimM, struct User_ATT *ua, int L, int K);
-struct Metrics_Bip *ICF_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainItemSim, double *psimM, struct User_ATT *ua, int L, int K);
+struct Metrics_Bip *UCF_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainItemCosinSim, double *psimM, int L, int K);
+struct Metrics_Bip *ICF_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainItemCosinSim, double *psimM, int L, int K);
 
 //SVD
-struct Metrics_Bip *SVD_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainItemSim, double *rui, struct User_ATT *ua, int L);
+struct Metrics_Bip *SVD_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip *testi1, struct Bip *testi2, struct iidNet *trainItemCosinSim, double *rui, int L);
 
 #endif
