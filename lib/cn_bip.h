@@ -42,9 +42,11 @@ struct Bip {
 	//additional
 	int att1[CA_METRICS_BIP];
 	int att2[CA_METRICS_BIP];
+	//attI1 & attI2 & attD1's index is same as degree.
 	int *attI1;
 	int *attI2;
 	double *attD1;
+	//edgesI & edgesD's index is same as edges.
 	int **edgesI;
 	double **edgesD;
 };
@@ -59,6 +61,7 @@ void sort_desc_by_edges_Bip(struct Bip *bip);
 //make sure there is no duplicate lines.
 void verify_Bip(struct Bip *bipi1, struct Bip *bipi2);
 void print_Bip(struct Bip *bip, char *filename);
+void set_attI_Bip(char *file, struct Bip *bip);
 
 //the dividation will guarantee that: 
 //	for each available user(degree of this user is at least one), at least there will be an edge related this user in big part.

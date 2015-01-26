@@ -35,6 +35,8 @@ static struct Bip *init_Bip(void) {
 	bip->attD1 = NULL;
 	bip->edgesI = NULL;
 	bip->edgesD = NULL;
+
+	return bip;
 }
 
 static void set_maxId_minId_create_Bip(int *i1, int *i2, long edgesNum, int index, int *maxId, int *minId) {
@@ -437,6 +439,29 @@ void print_Bip(struct Bip *bip, char *filename) {
 	}
 	fclose(fp);
 	printgf("print %s done.\n", filename);
+}
+
+void set_attI_Bip(char *file, struct Bip *bip) {
+	if (bip == NULL) isError("bip must not be NULL");
+	struct LineFile *ulf = create_LineFile(file, 1, 1, 1, -1);
+	bip->attI1 = malloc((bip->maxId + 1) * sizeof(int));
+	bip->attI2 = malloc((bip->maxId + 1) * sizeof(int));
+	int i;
+	for (i = 0; i < bip->maxId + 1; ++i) {
+		bip->attI1[i] = -1;
+		bip->attI2[i] = -1;
+	}
+	long j;
+	for (j = 0; j < ulf->linesNum; ++j) {
+		if (ulf->i1[j] > bip->maxId) {
+			isError("user's extra attribute (file: %s) has something wrong. \
+					Line %ld has a userId which is larger than the max userId in total dataset file.", \
+					file, j);
+		}
+		bip->attI1[ulf->i1[i]] = ulf->i2[i];
+		bip->attI2[ulf->i1[i]] = ulf->i3[i];
+	}
+	free_LineFile(ulf);
 }
 
 //divide Bip into two parts.
