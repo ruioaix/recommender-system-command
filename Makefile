@@ -62,6 +62,7 @@ $(bin_folder)/%.o : %.c
 
 
 ## x compiled from x.o and libs ##################################
+LOADLIBES += -lm
 % : %.o $(lib_archive)
 	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
 	@cp -v $@ $(subst /,-,$@)
