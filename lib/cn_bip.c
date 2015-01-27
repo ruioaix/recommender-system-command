@@ -442,6 +442,7 @@ void print_Bip(struct Bip *bip, char *filename) {
 }
 
 void set_attI_Bip(char *file, struct Bip *bip) {
+	if (file == NULL) return;
 	if (bip == NULL) isError("bip must not be NULL");
 	struct LineFile *ulf = create_LineFile(file, 1, 1, 1, -1);
 	bip->attI1 = malloc((bip->maxId + 1) * sizeof(int));
@@ -458,8 +459,8 @@ void set_attI_Bip(char *file, struct Bip *bip) {
 					Line %ld has a userId which is larger than the max userId in total dataset file.", \
 					file, j);
 		}
-		bip->attI1[ulf->i1[i]] = ulf->i2[i];
-		bip->attI2[ulf->i1[i]] = ulf->i3[i];
+		bip->attI1[ulf->i1[j]] = ulf->i2[j];
+		bip->attI2[ulf->i1[j]] = ulf->i3[j];
 	}
 	free_LineFile(ulf);
 }
@@ -1788,8 +1789,8 @@ static struct Metrics_Bip *recommend_Bip(void (*recommend_core)(struct Bip_recom
 	int i1idNum      = args->traini1->idNum;
 	int *i1degree    = args->traini1->degree;
 	int *i2degree    = args->traini2->degree;
-	int *user_gender = args->user_gender;
-	int *user_age = args->user_age;
+	int *user_gender = args->traini1->attI1;
+	int *user_age = args->traini1->attI2;
 	struct iidNet *itemSim = args->itemSim;
 	int L = args->L;
 
@@ -1835,7 +1836,6 @@ static struct Metrics_Bip *recommend_Bip(void (*recommend_core)(struct Bip_recom
 			metrics_R_RL_PL_Bip(i, i1degree, i2maxId/*i2idNum*/, args->testi1, L, rank, user_gender, user_age, R, RL, PL);
 		}
 	}
-	//print_time();
 
 	metrics_HL_COV_Bip(i1maxId, i1degree, i2maxId, L, topL, user_gender, user_age, HL, COV);
 	metrics_IL_Bip(i1maxId, i1degree, i1idNum, i2maxId, L, topL, itemSim, user_gender, user_age, IL);

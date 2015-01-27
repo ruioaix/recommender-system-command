@@ -285,7 +285,7 @@ static void get_ds1_ds2_Bip(struct Options *oa, struct Bip **ds1, struct Bip **d
 	free_LineFile(lf); 
 }
 
-static void set_att_Bip(struct Bip *tr1, struct Bip *te1) {
+static void set_att_Bip(struct Bip *ds1, struct Bip *te1) {
 	int i;
 	for (i = 0; i < CA_METRICS_BIP; ++i) {
 		te1->att1[i] = 0;
@@ -293,10 +293,10 @@ static void set_att_Bip(struct Bip *tr1, struct Bip *te1) {
 	}
 	for (i = 0; i < te1->maxId + 1; ++i) {
 		if (te1->degree[i]) {
-			(te1->att1[tr1->attI1[i]]) ++;
-			te1->att2[tr1->attI2[i]] += te1->degree[i];
-			(te1->att1[tr1->attI1[i]]) ++;
-			te1->att2[tr1->attI2[i]] += te1->degree[i];
+			(te1->att1[ds1->attI1[i]]) ++;
+			te1->att2[ds1->attI2[i]] += te1->degree[i];
+			(te1->att1[ds1->attI1[i]]) ++;
+			te1->att2[ds1->attI2[i]] += te1->degree[i];
 		}
 	}
 	te1->att1[0] = te1->idNum;
@@ -466,7 +466,15 @@ static void do_work_divide(struct Options *oa) {
 		tr1 = create_Bip(bigp, 1); tr2 = create_Bip(bigp, 2);
 		free_LineFile(smlp); free_LineFile(bigp);
 		
-		set_att_Bip(tr1, te1);
+		set_att_Bip(ds1, te1);
+		if (ds1->attI1 != NULL) {
+			tr1->attI1 = smalloc((tr1->maxId + 1) * sizeof(int));
+			memcpy(tr1->attI1, ds1->attI1, (tr1->maxId + 1) * sizeof(int));
+		}
+		if (ds1->attI2 != NULL) {
+			tr1->attI2 = smalloc((tr1->maxId + 1) * sizeof(int));
+			memcpy(tr1->attI2, ds1->attI2, (tr1->maxId + 1) * sizeof(int));
+		}
 
 		struct LineFile *simf = cosine_similarity_Bip(tr1, tr2, 2);
 		struct iidNet *trsim = create_iidNet(simf);

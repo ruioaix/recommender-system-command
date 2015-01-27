@@ -106,7 +106,7 @@ struct iidNet *create_iidNet(const struct LineFile * const lf) {
 	net->count=count;
 	net->edges=edges;
 	net->d = d;
-	printgf("create %s iidnet =>> Max: %d, Min: %d, idNum: %d, edgesNum: %ld, countMax: %ld, countMin: %ld\n", lf->filename, maxId, minId, idNum, linesNum, countMax, countMin); fflush(stdout);
+	printgf("create %s iidnet =>> Max: %d, Min: %d, idNum: %d, edgesNum: %ld, countMax: %ld, countMin: %ld", lf->filename, maxId, minId, idNum, linesNum, countMax, countMin); fflush(stdout);
 	return net;
 }
 
