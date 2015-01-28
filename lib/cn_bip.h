@@ -39,6 +39,12 @@ struct Bip {
 	int *degree;
 	int **edges;
 
+	//edgesI & edgesD's index is same as edges.
+	//the following two will be set automaically according to linefile.
+	int **edgesI;
+	double **edgesD;
+
+	//the following five will be left to the app.
 	//additional
 	int att1[CA_METRICS_BIP];
 	int att2[CA_METRICS_BIP];
@@ -46,9 +52,6 @@ struct Bip {
 	int *attI1;
 	int *attI2;
 	double *attD1;
-	//edgesI & edgesD's index is same as edges.
-	int **edgesI;
-	double **edgesD;
 };
 
 //if index is 1, means the i1 is the index, and i2 is the data saved into (int **edges).
@@ -61,7 +64,6 @@ void sort_desc_by_edges_Bip(struct Bip *bip);
 //make sure there is no duplicate lines.
 void verify_Bip(struct Bip *bipi1, struct Bip *bipi2);
 void print_Bip(struct Bip *bip, char *filename);
-void set_attI_Bip(char *file, struct Bip *bip);
 
 //the dividation will guarantee that: 
 //	for each available user(degree of this user is at least one), at least there will be an edge related this user in big part.

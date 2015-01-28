@@ -441,30 +441,6 @@ void print_Bip(struct Bip *bip, char *filename) {
 	printgf("print %s done.\n", filename);
 }
 
-void set_attI_Bip(char *file, struct Bip *bip) {
-	if (file == NULL) return;
-	if (bip == NULL) isError("bip must not be NULL");
-	struct LineFile *ulf = create_LineFile(file, 1, 1, 1, -1);
-	bip->attI1 = malloc((bip->maxId + 1) * sizeof(int));
-	bip->attI2 = malloc((bip->maxId + 1) * sizeof(int));
-	int i;
-	for (i = 0; i < bip->maxId + 1; ++i) {
-		bip->attI1[i] = -1;
-		bip->attI2[i] = -1;
-	}
-	long j;
-	for (j = 0; j < ulf->linesNum; ++j) {
-		if (ulf->i1[j] > bip->maxId) {
-			isError("user's extra attribute (file: %s) has something wrong. \
-					Line %ld has a userId which is larger than the max userId in total dataset file.", \
-					file, j);
-		}
-		bip->attI1[ulf->i1[j]] = ulf->i2[j];
-		bip->attI2[ulf->i1[j]] = ulf->i3[j];
-	}
-	free_LineFile(ulf);
-}
-
 //divide Bip into two parts.
 //return two struct LineFile. 
 //the first one is always the small one.
@@ -1867,12 +1843,8 @@ struct Metrics_Bip *mass_Bip(struct Bip *traini1, struct Bip *traini2, struct Bi
 	param.traini2 = traini2;
 	param.testi1 = testi1;
 
-	param.user_gender = traini1->attI1;
-	param.user_age = traini1->attI2;
 	int i;
 	for (i = 0; i < CA_METRICS_BIP; ++i) {
-		//param.testset_node_num[i] = ua->testset_node_num[i];
-		//param.testset_edge_num[i] = ua->testset_edge_num[i];
 		param.testset_node_num[i] = testi1->att1[i];
 		param.testset_edge_num[i] = testi1->att2[i];
 	}
