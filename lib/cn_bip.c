@@ -1818,12 +1818,12 @@ static struct Metrics_Bip *recommend_Bip(void (*recommend_core)(struct Bip_recom
 	metrics_NL_Bip(i1maxId, i1degree, i1idNum, i2degree, L, topL, user_gender, user_age, NL);
 
 	for (i = 0; i < CA_METRICS_BIP; ++i) {
-		retn->R[i] = R[i] / args->testset_edge_num[i];
-		retn->RL[i] = RL[i] / args->testset_node_num[i];
-		retn->PL[i] = PL[i] / args->testset_node_num[i];
+		retn->R[i] = R[i] / args->testi1->att2[i];
+		retn->RL[i] = RL[i] / args->testi1->att1[i];
+		retn->PL[i] = PL[i] / args->testi1->att1[i];
 		retn->HL[i] = HL[i];
-		retn->IL[i] = IL[i] / args->testset_node_num[i];
-		retn->NL[i] = NL[i] / args->testset_node_num[i];
+		retn->IL[i] = IL[i] / args->testi1->att1[i];
+		retn->NL[i] = NL[i] / args->testi1->att1[i];
 		retn->COV[i] = COV[i];
 	}
 
@@ -1842,13 +1842,6 @@ struct Metrics_Bip *mass_Bip(struct Bip *traini1, struct Bip *traini2, struct Bi
 	param.traini1 = traini1;
 	param.traini2 = traini2;
 	param.testi1 = testi1;
-
-	int i;
-	for (i = 0; i < CA_METRICS_BIP; ++i) {
-		param.testset_node_num[i] = testi1->att1[i];
-		param.testset_edge_num[i] = testi1->att2[i];
-	}
-
 	param.L = L;
 
 	return recommend_Bip(mass_recommend_Bip, &param);
