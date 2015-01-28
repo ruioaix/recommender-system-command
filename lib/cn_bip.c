@@ -820,12 +820,6 @@ struct Bip_recommend_param{
 	double mass_score;
 	int maxscore;
 
-	int *user_gender;
-	int *user_age;
-
-	int testset_node_num[CA_METRICS_BIP];
-	int testset_edge_num[CA_METRICS_BIP];
-
 	int L;
 	int K;
 	double *psimM;
@@ -1855,13 +1849,6 @@ struct Metrics_Bip *heats_Bip(struct Bip *traini1, struct Bip *traini2, struct B
 	param.traini2 = traini2;
 	param.testi1 = testi1;
 
-	param.user_gender = traini1->attI1;
-	param.user_age = traini1->attI2;
-	int i;
-	for (i = 0; i < CA_METRICS_BIP; ++i) {
-		param.testset_node_num[i] = testi1->att1[i];
-		param.testset_edge_num[i] = testi1->att2[i];
-	}
 	param.L = L;
 
 	return recommend_Bip(heats_recommend_Bip, &param);
@@ -1876,13 +1863,6 @@ struct Metrics_Bip *HNBI_Bip(struct Bip *traini1, struct Bip *traini2, struct Bi
 	param.traini2 = traini2;
 	param.testi1 = testi1;
 
-	param.user_gender = traini1->attI1;
-	param.user_age = traini1->attI2;
-	int i;
-	for (i = 0; i < CA_METRICS_BIP; ++i) {
-		param.testset_node_num[i] = testi1->att1[i];
-		param.testset_edge_num[i] = testi1->att2[i];
-	}
 	param.L = L;
 	return recommend_Bip(HNBI_recommend_Bip, &param);
 }
@@ -1896,13 +1876,6 @@ struct Metrics_Bip *RENBI_Bip(struct Bip *traini1, struct Bip *traini2, struct B
 	param.traini2 = traini2;
 	param.testi1 = testi1;
 
-	param.user_gender = traini1->attI1;
-	param.user_age = traini1->attI2;
-	int i;
-	for (i = 0; i < CA_METRICS_BIP; ++i) {
-		param.testset_node_num[i] = testi1->att1[i];
-		param.testset_edge_num[i] = testi1->att2[i];
-	}
 	param.L = L;
 	return recommend_Bip(RENBI_recommend_Bip, &param);
 }
@@ -1916,13 +1889,6 @@ struct Metrics_Bip *hybrid_Bip(struct Bip *traini1, struct Bip *traini2, struct 
 	param.traini2 = traini2;
 	param.testi1 = testi1;
 
-	param.user_gender = traini1->attI1;
-	param.user_age = traini1->attI2;
-	int i;
-	for (i = 0; i < CA_METRICS_BIP; ++i) {
-		param.testset_node_num[i] = testi1->att1[i];
-		param.testset_edge_num[i] = testi1->att2[i];
-	}
 
 	param.L = L;
 	return recommend_Bip(hybrid_recommend_Bip, &param);
@@ -2182,14 +2148,6 @@ struct Metrics_Bip *UCF_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip
 	param.traini2 = traini2;
 	param.testi1 = testi1;
 
-	param.user_gender = traini1->attI1;
-	param.user_age = traini1->attI2;
-	int i;
-	for (i = 0; i < CA_METRICS_BIP; ++i) {
-		param.testset_node_num[i] = testi1->att1[i];
-		param.testset_edge_num[i] = testi1->att2[i];
-	}
-
 	param.L = L;
 	param.K = K;
 
@@ -2206,16 +2164,6 @@ struct Metrics_Bip *ICF_Bip(struct Bip *traini1, struct Bip *traini2, struct Bip
 	param.traini1 = traini1;
 	param.traini2 = traini2;
 	param.testi1 = testi1;
-
-	//param.user_gender = ua->gender;
-	//param.user_age = ua->age;
-	param.user_gender = traini1->attI1;
-	param.user_age = traini1->attI2;
-	int i;
-	for (i = 0; i < CA_METRICS_BIP; ++i) {
-		param.testset_node_num[i] = testi1->att1[i];
-		param.testset_edge_num[i] = testi1->att2[i];
-	}
 
 	param.L = L;
 	param.K = K;
