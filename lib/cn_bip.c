@@ -212,21 +212,21 @@ static void set_attID_Bip(const struct LineFile * const af, struct Bip *bip) {
 	if (af == NULL) return;
 
 	if (af->i2 != NULL) {
-		bip->attI1 = smalloc((bip->maxId + 1) * sizeof(int));
+		bip->attI1 = scalloc((bip->maxId + 1), sizeof(int));
 	}
 	if (af->i3 != NULL) {
-		bip->attI2 = smalloc((bip->maxId + 1) * sizeof(int));
+		bip->attI2 = scalloc((bip->maxId + 1), sizeof(int));
 	}
 	if (af->d1 != NULL) {
-		bip->attD1 = smalloc((bip->maxId + 1) * sizeof(double));
+		bip->attD1 = scalloc((bip->maxId + 1), sizeof(double));
 	}
 	
 	long j;
 	for (j = 0; j < af->linesNum; ++j) {
 		if (af->i1[j] > bip->maxId) isError("attribute file has a id %d larger than maxId.", af->i1[j]);
-		if (bip->attI1 != NULL) bip->attI1[j] = af->i2[j];
-		if (bip->attI2 != NULL) bip->attI2[j] = af->i3[j];
-		if (bip->attD1 != NULL) bip->attD1[j] = af->d1[j];
+		if (bip->attI1 != NULL) bip->attI1[j] = af->i2[af->i1[j]];
+		if (bip->attI2 != NULL) bip->attI2[j] = af->i3[af->i1[j]];
+		if (bip->attD1 != NULL) bip->attD1[j] = af->d1[af->i1[j]];
 	}
 }
 

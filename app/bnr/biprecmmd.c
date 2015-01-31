@@ -287,6 +287,7 @@ static void get_ds1_ds2_Bip(struct Options *oa, struct Bip **ds1, struct Bip **d
 	*ds1 = create_Bip(lf, af, 1);
 	*ds2 = create_Bip(lf, NULL, 2);
 	free_LineFile(lf); 
+	free_LineFile(af);
 }
 
 static void set_att_Bip(struct Bip *ds1, struct Bip *te1) {
