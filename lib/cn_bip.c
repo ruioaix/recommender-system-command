@@ -21,20 +21,25 @@ static struct Bip *init_Bip(void) {
 	bip->idNum = 0;
 	bip->degreeMax = 0;
 	bip->degreeMin = 0;
-	bip->degree = NULL;
-	bip->edges = NULL;
 
+	bip->degree = NULL;
+	bip->attI1 = NULL;
+	bip->attI2 = NULL;
+	bip->attD1 = NULL;
+
+	bip->edges = NULL;
+	bip->edgesI = NULL;
+	bip->edgesD = NULL;
+
+#if CA_METRICS_BIP > 1
 	//additional
+	//just for init.
 	int i;
 	for (i = 0; i < CA_METRICS_BIP; ++i) {
 		bip->att1[i] = 0;
 		bip->att2[i] = 0;
 	}
-	bip->attI1 = NULL;
-	bip->attI2 = NULL;
-	bip->attD1 = NULL;
-	bip->edgesI = NULL;
-	bip->edgesD = NULL;
+#endif
 
 	return bip;
 }
@@ -203,10 +208,32 @@ static void set_edges_attr_create_Bip(int *i1, int *i2, int *i3, double *d1, int
 	free(temp);
 }
 
+static void set_attID_Bip(const struct LineFile * const af, struct Bip *bip) {
+	if (af == NULL) return;
+
+	if (af->i2 != NULL) {
+		bip->attI1 = smalloc((bip->maxId + 1) * sizeof(int));
+	}
+	if (af->i3 != NULL) {
+		bip->attI2 = smalloc((bip->maxId + 1) * sizeof(int));
+	}
+	if (af->d1 != NULL) {
+		bip->attD1 = smalloc((bip->maxId + 1) * sizeof(double));
+	}
+	
+	long j;
+	for (j = 0; j < af->linesNum; ++j) {
+		if (af->i1[j] > bip->maxId) isError("attribute file has a id %d larger than maxId.", af->i1[j]);
+		if (bip->attI1 != NULL) bip->attI1[j] = af->i2[j];
+		if (bip->attI2 != NULL) bip->attI2[j] = af->i3[j];
+		if (bip->attD1 != NULL) bip->attD1[j] = af->d1[j];
+	}
+}
+
 //kind of simple, just create struct Bip.
 //index is 1, i1 of struct LineFile will be the index.
 //index is 2, i2 of struct LineFile will be the index.
-struct Bip *create_Bip(const struct LineFile * const lf, int index) {
+struct Bip *create_Bip(const struct LineFile * const lf, const struct LineFile * const af, int index) {
 	if (lf == NULL || lf->i1 == NULL || lf->i2 == NULL || lf->linesNum < 1) isError("create_Bip lf: %p, lf->i1: %p, lf->i2: %p, lf->linesNum: %ld", lf, lf->i1, lf->i2, lf->linesNum);
 	if (index != 1 && index != 2) isError("create_Bip index: %d", index);
 
@@ -225,7 +252,9 @@ struct Bip *create_Bip(const struct LineFile * const lf, int index) {
 	//set edges, edgesI, edgesD
 	set_edges_attr_create_Bip(i1, i2, lf->i3, lf->d1, Bip->maxId, index, lf->linesNum, &(Bip->edges), &(Bip->edgesI), &(Bip->edgesD));	
 
-	//remain attI1, attI2, attD1, att1, att2; 
+	//set attI1, attI2, attD1
+	set_attID_Bip(af, Bip);
+
 	printgf("file:%s, index:%d, Max: %5d, Min: %5d, Num: %5d, degreeMax: %5d, degreeMin: %5d, edgesNum: %5ld", \
 			lf->filename, index, Bip->maxId, Bip->minId, Bip->idNum, Bip->degreeMax, Bip->degreeMin, Bip->edgesNum);
 
@@ -303,10 +332,12 @@ struct Bip * clone_Bip(struct Bip *bip) {
 	}
 
 	int i;
+#if CA_METRICS_BIP > 1
 	for (i = 0; i < CA_METRICS_BIP; ++i) {
 		new->att1[i] = bip->att1[i];
 		new->att2[i] = bip->att2[i];
 	}
+#endif
 
 	new->edges = smalloc((bip->maxId + 1) * sizeof(int *));
 	if (bip->edgesI != NULL && bip->edgesD != NULL) {
@@ -748,39 +779,47 @@ struct LineFile *pearson_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, in
 /*********************************************************************/
 struct Metrics_Bip *create_MetricsBip(void) {
 	struct Metrics_Bip *lp = smalloc(sizeof(struct Metrics_Bip));
-
-	int i;
-	for (i = 0; i < CA_METRICS_BIP; ++i) {
-		lp->R[i] = 0;
-		lp->RL[i] = 0;
-		lp->PL[i] = 0;
-		lp->HL[i] = 0;
-		lp->IL[i] = 0;
-		lp->NL[i] = 0;
-		lp->COV[i] = 0;
-	}
-
+	lp->R = lp->RL = lp->PL = 0.0;
+	lp->HL = lp->IL = lp->NL = lp->COV = 0.0;
 	lp->L = 0;
 	lp->topL = NULL;
+
+#if CA_METRICS_BIP > 1
+	int i;
+	for (i = 0; i < CA_METRICS_BIP; ++i) {
+		lp->RA[i] = 0;
+		lp->RLA[i] = 0;
+		lp->PLA[i] = 0;
+		lp->HLA[i] = 0;
+		lp->ILA[i] = 0;
+		lp->NLA[i] = 0;
+		lp->COVA[i] = 0;
+	}
+#endif
+
 	return lp;
 }
 
 //free(NULL) is ok.
 void clean_MetricsBip(struct Metrics_Bip *lp) {
-	int i;
-	for (i = 0; i < CA_METRICS_BIP; ++i) {
-		lp->R[i] = 0;
-		lp->RL[i] = 0;
-		lp->PL[i] = 0;
-		lp->HL[i] = 0;
-		lp->IL[i] = 0;
-		lp->NL[i] = 0;
-		lp->COV[i] = 0;
-	}
-
+	lp->R = lp->RL = lp->PL = 0.0;
+	lp->HL = lp->IL = lp->NL = lp->COV = 0.0;
 	lp->L = 0;
 	free(lp->topL);
 	lp->topL = NULL;
+
+#if CA_METRICS_BIP > 1
+	int i;
+	for (i = 0; i < CA_METRICS_BIP; ++i) {
+		lp->RA[i] = 0;
+		lp->RLA[i] = 0;
+		lp->PLA[i] = 0;
+		lp->HLA[i] = 0;
+		lp->ILA[i] = 0;
+		lp->NLA[i] = 0;
+		lp->COVA[i] = 0;
+	}
+#endif
 }
 
 void free_MetricsBip(struct Metrics_Bip *lp) {
@@ -1784,13 +1823,13 @@ static struct Metrics_Bip *recommend_Bip(void (*recommend_core)(struct Bip_recom
 	int *topL = scalloc(L*(i1maxId + 1), sizeof(int));
 	retn->topL = topL;
 	double *R, *RL, *PL, *HL, *IL, *NL, *COV;
-	R=retn->R;
-	RL=retn->RL;
-	PL=retn->PL;
-	HL=retn->HL;
-	IL=retn->IL;
-	NL=retn->NL;
-	COV=retn->COV;
+	R=retn->RA;
+	RL=retn->RLA;
+	PL=retn->PLA;
+	HL=retn->HLA;
+	IL=retn->ILA;
+	NL=retn->NLA;
+	COV=retn->COVA;
 
 	//only use in this function.
 	int *rank = smalloc((i2maxId + 1)*sizeof(int));
@@ -1812,13 +1851,13 @@ static struct Metrics_Bip *recommend_Bip(void (*recommend_core)(struct Bip_recom
 	metrics_NL_Bip(i1maxId, i1degree, i1idNum, i2degree, L, topL, user_gender, user_age, NL);
 
 	for (i = 0; i < CA_METRICS_BIP; ++i) {
-		retn->R[i] = R[i] / args->testi1->att2[i];
-		retn->RL[i] = RL[i] / args->testi1->att1[i];
-		retn->PL[i] = PL[i] / args->testi1->att1[i];
-		retn->HL[i] = HL[i];
-		retn->IL[i] = IL[i] / args->testi1->att1[i];
-		retn->NL[i] = NL[i] / args->testi1->att1[i];
-		retn->COV[i] = COV[i];
+		retn->RA[i] = R[i] / args->testi1->att2[i];
+		retn->RLA[i] = RL[i] / args->testi1->att1[i];
+		retn->PLA[i] = PL[i] / args->testi1->att1[i];
+		retn->HLA[i] = HL[i];
+		retn->ILA[i] = IL[i] / args->testi1->att1[i];
+		retn->NLA[i] = NL[i] / args->testi1->att1[i];
+		retn->COVA[i] = COV[i];
 	}
 
 	free(i1source); free(i2source);

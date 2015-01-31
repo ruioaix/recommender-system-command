@@ -21,7 +21,7 @@ static void display_usage(void) {
 	puts("-F: using ICF");
 	puts("-S: using SVD");
 
-	puts("-u: users extra attribute");
+	puts("-u: extra attribute filename");
 	puts("-i: full dataset filename");
 	puts("-T: train dataset filename");
 	puts("-t: test dataset filename");
@@ -46,7 +46,7 @@ struct Options {
 	int calculate_ICF;
 	int calculate_SVD;
 
-	char *user_extra_att;
+	char *extra_attr_filename;
 	char *total_filename;
 	char *train_filename;
 	char *test_filename;
@@ -71,7 +71,7 @@ static void init_Options(struct Options *op) {
 	op->calculate_ICF = 0;
 	op->calculate_SVD = 0;
 
-	op->user_extra_att = NULL;
+	op->extra_attr_filename = NULL;
 	op->total_filename = NULL;
 	op->train_filename = NULL;
 	op->test_filename = NULL;
@@ -100,16 +100,16 @@ static void set_Optins(int argc, char **argv, struct Options *op) {
 
 		{"help", no_argument, NULL, '?'},
 
-		{"usersExtraAtt", required_argument, NULL, 'u'},
-		{"dataset", required_argument, NULL, 'i'},
-		{"trainset", required_argument, NULL, 'T'},
-		{"testset", required_argument, NULL, 't'},
+		{"extra-attribute-file", required_argument, NULL, 'u'},
+		{"dataset-file", required_argument, NULL, 'i'},
+		{"trainset-file", required_argument, NULL, 'T'},
+		{"testset-file", required_argument, NULL, 't'},
 
 		{"loopNum", required_argument, NULL, 'l'},
 		{"dividerate", required_argument, NULL, 'd'},
 		{"random-seed", required_argument, NULL, 's'},
-		{"recmlistLength", required_argument, NULL, 'L'},
-		{"CFuserSimlistLength", required_argument, NULL, 'K'},
+		{"recommend-list-length", required_argument, NULL, 'L'},
+		{"CF-user-simlarity-length", required_argument, NULL, 'K'},
 		{"SVD-F", required_argument, NULL, 'f'}
 	};
 	int longIndex = 0;
@@ -152,7 +152,7 @@ static void set_Optins(int argc, char **argv, struct Options *op) {
 
 				//file
 			case 'u':
-				op->user_extra_att = optarg;
+				op->extra_attr_filename = optarg;
 				//printf("testset: %s\n", optarg);
 				break;
 			case 'i':
@@ -274,41 +274,20 @@ static void do_work(struct Options *oa) {
 
 static void get_ds1_ds2_Bip(struct Options *oa, struct Bip **ds1, struct Bip **ds2) {
 	struct LineFile *lf; 
+	struct LineFile *af = NULL;
+	if (oa->extra_attr_filename != NULL) {
+		af = create_LineFile(oa->extra_attr_filename, 1, 1, 1, -1);
+	}
 	if (oa->calculate_UCF || oa->calculate_ICF || oa->calculate_SVD) {
 		lf = create_LineFile(oa->total_filename, 1, 1, 1, -1);
 	}
 	else {
 		lf = create_LineFile(oa->total_filename, 1, 1, -1);
 	}
-	*ds1 = create_Bip(lf, 1);
-	*ds2 = create_Bip(lf, 2);
+	*ds1 = create_Bip(lf, af, 1);
+	*ds2 = create_Bip(lf, NULL, 2);
 	free_LineFile(lf); 
 }
-
-static void set_attI_Bip(char *file, struct Bip *bip) {
-	if (file == NULL) return;
-	if (bip == NULL) isError("bip must not be NULL");
-	struct LineFile *ulf = create_LineFile(file, 1, 1, 1, -1);
-	bip->attI1 = malloc((bip->maxId + 1) * sizeof(int));
-	bip->attI2 = malloc((bip->maxId + 1) * sizeof(int));
-	int i;
-	for (i = 0; i < bip->maxId + 1; ++i) {
-		bip->attI1[i] = -1;
-		bip->attI2[i] = -1;
-	}
-	long j;
-	for (j = 0; j < ulf->linesNum; ++j) {
-		if (ulf->i1[j] > bip->maxId) {
-			isError("user's extra attribute (file: %s) has something wrong. \
-					Line %ld has a userId which is larger than the max userId in total dataset file.", \
-					file, j);
-		}
-		bip->attI1[ulf->i1[j]] = ulf->i2[j];
-		bip->attI2[ulf->i1[j]] = ulf->i3[j];
-	}
-	free_LineFile(ulf);
-}
-
 
 static void set_att_Bip(struct Bip *ds1, struct Bip *te1) {
 	int i;
@@ -331,13 +310,13 @@ static void set_att_Bip(struct Bip *ds1, struct Bip *te1) {
 static void metrics_add_add(struct Metrics_Bip *sum, struct Metrics_Bip *single) {
 	int i;
 	for (i = 0; i < CA_METRICS_BIP; ++i) {
-		sum->R[i] +=  single->R[i];
-		sum->RL[i] += single->RL[i];
-		sum->PL[i] += single->PL[i];
-		sum->HL[i] += single->HL[i];
-		sum->IL[i] += single->IL[i];
-		sum->NL[i] += single->NL[i];
-		sum->COV[i] += single->COV[i];
+		sum->RA[i] +=  single->RA[i];
+		sum->RLA[i] += single->RLA[i];
+		sum->PLA[i] += single->PLA[i];
+		sum->HLA[i] += single->HLA[i];
+		sum->ILA[i] += single->ILA[i];
+		sum->NLA[i] += single->NLA[i];
+		sum->COVA[i] += single->COVA[i];
 	}
 }
 
@@ -433,37 +412,37 @@ static void print_calculate_result_Bip(struct Options *oa,\
 	int i;
 	if (oa->calculate_mass == 1) {
 		for (i = 0; i < CA_METRICS_BIP; ++i) {
-			printf("\tmass_%d\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", i, loopNum, mass_result->R[i]/loopNum, mass_result->RL[i]/loopNum, mass_result->PL[i]/loopNum, mass_result->IL[i]/loopNum, mass_result->HL[i]/loopNum, mass_result->NL[i]/loopNum, mass_result->COV[i]/loopNum);
+			printf("\tmass_%d\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", i, loopNum, mass_result->RA[i]/loopNum, mass_result->RLA[i]/loopNum, mass_result->PLA[i]/loopNum, mass_result->ILA[i]/loopNum, mass_result->HLA[i]/loopNum, mass_result->NLA[i]/loopNum, mass_result->COVA[i]/loopNum);
 		}
 	}
 	if (oa->calculate_heat == 1) {
 		for (i = 0; i < CA_METRICS_BIP; ++i) {
-			printf("\theats_%d\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", i, loopNum, heats_result->R[i]/loopNum, heats_result->RL[i]/loopNum, heats_result->PL[i]/loopNum, heats_result->IL[i]/loopNum, heats_result->HL[i]/loopNum, heats_result->NL[i]/loopNum, heats_result->COV[i]/loopNum);
+			printf("\theats_%d\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", i, loopNum, heats_result->RA[i]/loopNum, heats_result->RLA[i]/loopNum, heats_result->PLA[i]/loopNum, heats_result->ILA[i]/loopNum, heats_result->HLA[i]/loopNum, heats_result->NLA[i]/loopNum, heats_result->COVA[i]/loopNum);
 		}
 	}
 	if (oa->calculate_hybrid == 1) {
 		for (i = 0; i < CA_METRICS_BIP; ++i) {
-			printf("\thybrid_%d\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", i, loopNum, hybrid_result->R[i]/loopNum, hybrid_result->RL[i]/loopNum, hybrid_result->PL[i]/loopNum, hybrid_result->IL[i]/loopNum, hybrid_result->HL[i]/loopNum, hybrid_result->NL[i]/loopNum, hybrid_result->COV[i]/loopNum);
+			printf("\thybrid_%d\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", i, loopNum, hybrid_result->RA[i]/loopNum, hybrid_result->RLA[i]/loopNum, hybrid_result->PLA[i]/loopNum, hybrid_result->ILA[i]/loopNum, hybrid_result->HLA[i]/loopNum, hybrid_result->NLA[i]/loopNum, hybrid_result->COVA[i]/loopNum);
 		}
 	}
 	if (oa->calculate_HNBI == 1) {
 		for (i = 0; i < CA_METRICS_BIP; ++i) {
-			printf("\tHNBI_%d\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", i, loopNum, HNBI_result->R[i]/loopNum, HNBI_result->RL[i]/loopNum, HNBI_result->PL[i]/loopNum, HNBI_result->IL[i]/loopNum, HNBI_result->HL[i]/loopNum, HNBI_result->NL[i]/loopNum, HNBI_result->COV[i]/loopNum);
+			printf("\tHNBI_%d\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", i, loopNum, HNBI_result->RA[i]/loopNum, HNBI_result->RLA[i]/loopNum, HNBI_result->PLA[i]/loopNum, HNBI_result->ILA[i]/loopNum, HNBI_result->HLA[i]/loopNum, HNBI_result->NLA[i]/loopNum, HNBI_result->COVA[i]/loopNum);
 		}
 	}
 	if (oa->calculate_RENBI == 1) {
 		for (i = 0; i < CA_METRICS_BIP; ++i) {
-			printf("\tRENBI_%d\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", i, loopNum, RENBI_result->R[i]/loopNum, RENBI_result->RL[i]/loopNum, RENBI_result->PL[i]/loopNum, RENBI_result->IL[i]/loopNum, RENBI_result->HL[i]/loopNum, RENBI_result->NL[i]/loopNum, RENBI_result->COV[i]/loopNum);
+			printf("\tRENBI_%d\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", i, loopNum, RENBI_result->RA[i]/loopNum, RENBI_result->RLA[i]/loopNum, RENBI_result->PLA[i]/loopNum, RENBI_result->ILA[i]/loopNum, RENBI_result->HLA[i]/loopNum, RENBI_result->NLA[i]/loopNum, RENBI_result->COVA[i]/loopNum);
 		}
 	}
 	if (oa->calculate_UCF == 1) {
 		for (i = 0; i < CA_METRICS_BIP; ++i) {
-			printf("\tUCF_%d\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", i, loopNum, UCF_result->R[i]/loopNum, UCF_result->RL[i]/loopNum, UCF_result->PL[i]/loopNum, UCF_result->IL[i]/loopNum, UCF_result->HL[i]/loopNum, UCF_result->NL[i]/loopNum, UCF_result->COV[i]/loopNum);
+			printf("\tUCF_%d\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", i, loopNum, UCF_result->RA[i]/loopNum, UCF_result->RLA[i]/loopNum, UCF_result->PLA[i]/loopNum, UCF_result->ILA[i]/loopNum, UCF_result->HLA[i]/loopNum, UCF_result->NLA[i]/loopNum, UCF_result->COVA[i]/loopNum);
 		}
 	}
 	if (oa->calculate_ICF == 1) {
 		for (i = 0; i < CA_METRICS_BIP; ++i) {
-			printf("\tICF_%d\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", i, loopNum, ICF_result->R[i]/loopNum, ICF_result->RL[i]/loopNum, ICF_result->PL[i]/loopNum, ICF_result->IL[i]/loopNum, ICF_result->HL[i]/loopNum, ICF_result->NL[i]/loopNum, ICF_result->COV[i]/loopNum);
+			printf("\tICF_%d\tloopNum: %d, R: %.17f, RL: %.17f, PL: %.17f, IL: %.17f, HL: %.17f, NL: %.17f, COV: %.17f\n", i, loopNum, ICF_result->RA[i]/loopNum, ICF_result->RLA[i]/loopNum, ICF_result->PLA[i]/loopNum, ICF_result->ILA[i]/loopNum, ICF_result->HLA[i]/loopNum, ICF_result->NLA[i]/loopNum, ICF_result->COVA[i]/loopNum);
 		}
 	}
 }
@@ -473,7 +452,6 @@ static void do_work_divide(struct Options *oa) {
 	struct LineFile *smlp, *bigp;
 
 	get_ds1_ds2_Bip(oa, &ds1, &ds2);
-	set_attI_Bip(oa->user_extra_att, ds1);
 
 	struct Metrics_Bip *mass_result = create_MetricsBip();
 	struct Metrics_Bip *heats_result = create_MetricsBip();
@@ -487,8 +465,8 @@ static void do_work_divide(struct Options *oa) {
 	int i;
 	for (i = 0; i < oa->loopNum; ++i) {
 		divide_Bip(ds1, ds2, oa->dataset_divide_rate, &smlp, &bigp);
-		te1 = create_Bip(smlp, 1); te2 = create_Bip(smlp, 2);
-		tr1 = create_Bip(bigp, 1); tr2 = create_Bip(bigp, 2);
+		te1 = create_Bip(smlp, NULL, 1); te2 = create_Bip(smlp, NULL, 2);
+		tr1 = create_Bip(bigp, NULL, 1); tr2 = create_Bip(bigp, NULL, 2);
 		free_LineFile(smlp); free_LineFile(bigp);
 		
 		set_att_Bip(ds1, te1);

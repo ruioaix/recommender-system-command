@@ -16,9 +16,10 @@
  * struct Metrics_Bip contains the result(all metrics) for all kinds of recommendation algorithm.
  *
  */
-#ifndef RSC_BIP_H
-#define RSC_BIP_H
+#ifndef RSC_CN_BIP_H
+#define RSC_CN_BIP_H
 
+#include "sc_define.h"
 #include "io_linefile.h"
 #include "cn_iidnet.h"
 
@@ -27,7 +28,6 @@
 //Bipartite contains two parts. e.g. user and item.
 //but here, create_Bip only create user Bipartite or item Bipartite.
 //if you want both, create two time with different index arg.
-#define CA_METRICS_BIP 10 
 struct Bip {
 	//Basic
 	long edgesNum;
@@ -36,28 +36,32 @@ struct Bip {
 	int idNum;
 	int degreeMax;
 	int degreeMin;
-	int *degree;
-	int **edges;
-
-	//edgesI & edgesD's index is same as edges.
-	//the following two will be set automaically according to linefile.
-	int **edgesI;
-	double **edgesD;
-
-	//the following five will be left to the app.
-	//additional
-	int att1[CA_METRICS_BIP];
-	int att2[CA_METRICS_BIP];
 	//attI1 & attI2 & attD1's index is same as degree.
+	//the degree can be culated with the linkfile.
+	//but the following attIn & attDn need another file.
+	int *degree;
 	int *attI1;
 	int *attI2;
 	double *attD1;
+	//edgesI & edgesD's index is same as edges.
+	//the following two will be set automaically according to linefile.
+	int **edges; //depending on lf->i2
+	int **edgesI; //depending on lf->i3
+	double **edgesD; //depending on lf->d1
+
+	//the following five will be left to the app.
+	//it is just for shang branch, for current.
+	//additional
+#if CA_METRICS_BIP > 1	
+	int att1[CA_METRICS_BIP];
+	int att2[CA_METRICS_BIP];
+#endif
 };
 
 //if index is 1, means the i1 is the index, and i2 is the data saved into (int **edges).
 //i1 and i2 is the data in LineFile.
 //if index is 2, means i2 is the index.
-struct Bip *create_Bip(const struct LineFile * const file, int index);
+struct Bip *create_Bip(const struct LineFile * const linkfile, const struct LineFile * const attrfile, int index);
 void free_Bip(struct Bip *bip);
 struct Bip * clone_Bip(struct Bip *bip);
 void sort_desc_by_edges_Bip(struct Bip *bip);
@@ -78,17 +82,20 @@ struct LineFile *cosine_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, int
 struct LineFile *pearson_similarity_Bip(struct Bip *bipi1, struct Bip *bipi2, int target);
 
 struct Metrics_Bip {
-	double R[CA_METRICS_BIP];
-	double RL[CA_METRICS_BIP];
-	double PL[CA_METRICS_BIP];
-	double HL[CA_METRICS_BIP];
-	double IL[CA_METRICS_BIP];
-	double NL[CA_METRICS_BIP];
-	double COV[CA_METRICS_BIP];
+	double R, RL, PL, HL, IL, NL, COV;
+	int *topL, L;
 
-	int *topL;
-	int L;
+#if CA_METRICS_BIP > 1
+	double RA[CA_METRICS_BIP];
+	double RLA[CA_METRICS_BIP];
+	double PLA[CA_METRICS_BIP];
+	double HLA[CA_METRICS_BIP];
+	double ILA[CA_METRICS_BIP];
+	double NLA[CA_METRICS_BIP];
+	double COVA[CA_METRICS_BIP];
+#endif
 };
+
 struct Metrics_Bip *create_MetricsBip(void);
 void clean_MetricsBip(struct Metrics_Bip *m);
 void free_MetricsBip(struct Metrics_Bip *m);
