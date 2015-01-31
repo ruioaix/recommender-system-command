@@ -224,9 +224,9 @@ static void set_attID_Bip(const struct LineFile * const af, struct Bip *bip) {
 	long j;
 	for (j = 0; j < af->linesNum; ++j) {
 		if (af->i1[j] > bip->maxId) isError("attribute file has a id %d larger than maxId.", af->i1[j]);
-		if (bip->attI1 != NULL) bip->attI1[j] = af->i2[af->i1[j]];
-		if (bip->attI2 != NULL) bip->attI2[j] = af->i3[af->i1[j]];
-		if (bip->attD1 != NULL) bip->attD1[j] = af->d1[af->i1[j]];
+		if (bip->attI1 != NULL) bip->attI1[af->i1[j]] = af->i2[j];
+		if (bip->attI2 != NULL) bip->attI2[af->i1[j]] = af->i3[j];
+		if (bip->attD1 != NULL) bip->attD1[af->i1[j]] = af->d1[j];
 	}
 }
 
